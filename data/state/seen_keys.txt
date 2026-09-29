@@ -14619,6 +14619,7 @@ ioc_url:http://36.64.184.26:37265/i
 ioc_url:http://36.64.184.26:37777/bin.sh
 ioc_url:http://36.64.184.26:37777/i
 ioc_url:http://36.64.184.26:38339/i
+ioc_url:http://36.64.184.26:39793/i
 ioc_url:http://36.64.184.26:46567/bin.sh
 ioc_url:http://36.64.184.26:46567/i
 ioc_url:http://36.64.184.26:46609/i
@@ -35640,6 +35641,7 @@ ioc_url:https://urlhaus.abuse.ch/url/3925120
 ioc_url:https://urlhaus.abuse.ch/url/3925121
 ioc_url:https://urlhaus.abuse.ch/url/3925122
 ioc_url:https://urlhaus.abuse.ch/url/3925123
+ioc_url:https://urlhaus.abuse.ch/url/3925124
 ioc_url:https://userhotels.org/adobe%20acrobat_reader.exe
 ioc_url:https://usertunelaccount1.royalbnkmail.com/bin/screenconnect.clientsetup.msi
 ioc_url:https://usewayne.app/download/wayne-setup.exe

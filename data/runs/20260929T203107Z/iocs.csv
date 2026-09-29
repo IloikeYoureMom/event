@@ -1,0 +1,3 @@
+type,value,source,first_seen,tlp,confidence,tags,source_ref
+url,http://36.64.184.26:39793/i,text_feeds:urlhaus_urls,2026-09-29T20:31:15Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925124,text_feeds:urlhaus_urls,2026-09-29T20:31:15Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
