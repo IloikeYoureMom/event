@@ -9,6 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import urllib.robotparser
+from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
 from ..models import IntelItem
@@ -103,13 +104,15 @@ class HttpClient:
 
     def __init__(self, user_agent: str | None = None,
                  respect_robots: bool = True, min_delay: float = 2.0,
-                 timeout: float = 30.0, retries: int = 2, max_workers: int = 8):
+                 timeout: float = 30.0, retries: int = 2, max_workers: int = 8,
+                 max_bytes: int = 64 * 1024 * 1024):
         self.ua = user_agent or self.DEFAULT_UA
         self.respect_robots = respect_robots
         self.limiter = RateLimiter(min_delay)
         self.timeout = timeout
         self.retries = retries
         self.max_workers = max_workers
+        self.max_bytes = max_bytes
         self._pool: dict[str, Any] = {}
         self._pool_lock = threading.Lock()
 
@@ -142,6 +145,61 @@ class HttpClient:
                     break
                 time.sleep((2 ** attempt) + random.random())
         return HttpResponse(url=url, status=0, error=last_err)
+
+    def cached_get(self, url: str, cache_dir: str | Path,
+                   headers: dict[str, str] | None = None,
+                   ttl_seconds: float = 3600.0,
+                   force: bool = False) -> "HttpResponse":
+        import hashlib
+        cdir = Path(cache_dir)
+        cdir.mkdir(parents=True, exist_ok=True)
+        key = hashlib.sha256(url.encode()).hexdigest()[:32]
+        meta_path = cdir / f"{key}.meta"
+        body_path = cdir / f"{key}.bin"
+        if not force and body_path.exists():
+            fresh = False
+            try:
+                etag = mtime = ""
+                if meta_path.exists():
+                    etag, _, mtime = meta_path.read_text().partition("\n")
+                if mtime:
+                    req_headers = {"If-Modified-Since": mtime}
+                    if etag:
+                        req_headers["If-None-Match"] = etag
+                    resp = self.get(url, {**req_headers, **(headers or {})})
+                    if resp.status == 304:
+                        fresh = True
+                        resp = HttpResponse(url=url, status=200,
+                                            body=body_path.read_bytes().decode(errors="replace"))
+                    elif resp.ok:
+                        fresh = True
+                        new_etag = resp.headers.get("ETag", "")
+                        new_m = resp.headers.get("Last-Modified", "") or mtime
+                        meta_path.write_text(f"{new_etag}\n{new_m}")
+                        body_path.write_bytes(resp.body.encode(errors="replace"))
+                else:
+                    age = time.time() - body_path.stat().st_mtime
+                    if age < ttl_seconds:
+                        fresh = True
+                        resp = HttpResponse(url=url, status=200,
+                                            body=body_path.read_text(errors="replace"))
+                    else:
+                        resp = self.get(url, headers)
+                        if resp.ok:
+                            fresh = True
+                            meta_path.write_text(f"{resp.headers.get('ETag', '')}\n"
+                                                 f"{resp.headers.get('Last-Modified', '')}")
+                            body_path.write_bytes(resp.body.encode(errors="replace"))
+            except Exception:
+                fresh = False
+            if fresh:
+                return resp
+        resp = self.get(url, headers)
+        if resp.ok:
+            meta_path.write_text(f"{resp.headers.get('ETag', '')}\n"
+                                 f"{resp.headers.get('Last-Modified', '')}")
+            body_path.write_bytes(resp.body.encode(errors="replace"))
+        return resp
 
     def get_many(self, urls: list[str],
                  headers: dict[str, str] | None = None,
@@ -177,7 +235,7 @@ class HttpClient:
                             f"{scheme}://{parts.netloc}{target}",
                             body=data, headers=req_headers, preload_content=False)
         try:
-            raw = resp.read()
+            raw = resp.read(self.max_bytes)
         finally:
             resp.close()
         charset = resp.headers.get("Content-Type", "")
