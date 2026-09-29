@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sources - osint recon{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Sources</h1>
+  <div class="sub">{{ collectors | length }} collectors registered &middot; gated collectors need credentials in config/feeds.yaml</div>
+</div>
+
+<div class="panel">
+  <h2>Collector registry</h2>
+  <table class="grid">
+    <tr><th>Collector</th><th>Default state</th><th>Items collected (all runs)</th></tr>
+    {% for c in collectors %}
+    <tr>
+      <td class="mono">{{ c.name }}</td>
+      <td><span class="pill {{ 'on' if c.default_enabled else 'off' }}">{{ 'enabled' if c.default_enabled else 'gated' }}</span></td>
+      <td>{{ c.items }}</td>
+    </tr>
+    {% endfor %}
+    {% if not collectors %}<tr><td colspan="3" class="muted">registry unavailable</td></tr>{% endif %}
+  </table>
+</div>
+
+<div class="panel">
+  <h2>Observed sources across runs</h2>
+  {% set smax = (by_source[0][1] if by_source else 1) %}
+  {% for name, n in by_source %}
+  <div class="dist-row">
+    <div class="dist-label mono">{{ name }}</div>
+    <div class="dist-bar"><div class="dist-fill" style="width: {{ (100 * n / smax) | round(1) }}%"></div></div>
+    <div class="dist-num">{{ n }}</div>
+  </div>
+  {% endfor %}
+  {% if not by_source %}<div class="muted small">no collected data yet</div>{% endif %}
+</div>
+{% endblock %}
