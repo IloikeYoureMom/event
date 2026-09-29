@@ -34,16 +34,19 @@ RE_ACTORISH = [
 class RssReportCollector(Collector):
     name = "rss_reports"
 
+    DEFAULT_FEEDS: dict[str, str] = DEFAULT_REPORT_FEEDS
+
     def __init__(self, cfg, http=None, registry: Registry | None = None):
         super().__init__(cfg, http)
         self.registry = registry
 
     def collect(self) -> Iterable[IntelItem]:
-        feeds = dict(DEFAULT_REPORT_FEEDS)
+        feeds = dict(self.DEFAULT_REPORT_FEEDS)
         feeds.update(self.cfg.get("feeds", {}))
         keywords = [k.lower() for k in self.cfg.get("filter_keywords", [])]
-        for org, url in feeds.items():
-            resp = self.http.get(url)
+        names = list(feeds)
+        resps = self.http.get_many([feeds[n] for n in names], skip_rate_limit=True)
+        for org, url, resp in zip(names, (feeds[n] for n in names), resps):
             if not resp.ok:
                 self.log.warning("feed %s (%s) failed: %s", org, url, resp.error or resp.status)
                 continue
