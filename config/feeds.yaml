@@ -1,0 +1,98 @@
+
+http:
+  user_agent: "YourTeam intel-team@yourorg.example"
+  respect_robots: true
+  min_delay_seconds: 2.0
+  timeout_seconds: 30
+  retries: 2
+
+watch_terms:
+  - yourcompany
+  - yourbrand.com
+
+output:
+  data_dir: data
+
+sources:
+  text_feeds:
+    enabled: true
+    feeds: {}
+
+  stix_files:
+    enabled: true
+    urls:
+      - https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz
+    paths: []
+
+  rss_reports:
+    enabled: true
+    feeds: {}
+    filter_keywords: []
+
+  sec_8k_item105:
+    enabled: true
+    lookback_days: 7
+    fetch_item_text: false
+    max_items: 60
+
+  github_repos:
+    enabled: true
+    queries: []
+    since: ""
+
+  github_ioc_repos:
+    enabled: true
+    repos: [digitalside/threat-actor]
+
+  crtsh_certs:
+    enabled: true
+    domains: []
+    since_id: 0
+
+  ransom_leaks:
+    enabled: true
+    watchlist: []
+
+  hibp_domain:
+    enabled: false
+    api_key: ""
+    domains: []
+
+  malwarebazaar_brand:
+    enabled: false
+    search_terms: []
+
+  telegram:
+    enabled: false
+    channels: []
+    keywords: [breach, stealer, combo, yourbrand]
+    history_limit: 200
+
+  discord:
+    enabled: false
+    channel_ids: {}
+
+  forums:
+    enabled: false
+    sites: []
+
+  paste_dumps:
+    enabled: false
+    dump_urls: []
+    watch_terms: [yourbrand.com]
+
+  rentry_search:
+    enabled: false
+    watch_terms: []
+
+  leak_teasers:
+    enabled: false
+    url: ""
+    token: ""
+
+  doc_links:
+    enabled: false
+    seed_urls: []
+    allowed_hosts: []
+    follow_links: false
+    max_docs: 25
