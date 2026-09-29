@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Events - osint recon{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Event stream</h1>
+  <div class="sub">run <span class="mono">{{ selected or 'all' }}</span> &middot; {{ stats.total }} items collected</div>
+</div>
+
+<div class="cards">
+  <div class="card hot"><div class="k">Total items</div><div class="v">{{ stats.total }}</div></div>
+  {% for name, n in stats.by_category[:4] %}
+  <div class="card"><div class="k">{{ name }}</div><div class="v">{{ n }}</div></div>
+  {% endfor %}
+</div>
+
+{% if stats.timeline %}
+<div class="panel">
+  <h2>Collection timeline</h2>
+  <div class="timeline" id="timeline" data-payload='{{ stats.timeline | tojson }}'></div>
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 22px;">
+  <div class="panel">
+    <h2>Distribution by category</h2>
+    {% set cmax = (stats.by_category[0][1] if stats.by_category else 1) %}
+    {% for name, n in stats.by_category[:8] %}
+    <div class="dist-row">
+      <div class="dist-label mono">{{ name }}</div>
+      <div class="dist-bar"><div class="dist-fill" style="width: {{ (100 * n / cmax) | round(1) }}%"></div></div>
+      <div class="dist-num">{{ n }}</div>
+    </div>
+    {% endfor %}
+    {% if not stats.by_category %}<div class="muted small">no data</div>{% endif %}
+  </div>
+  <div class="panel">
+    <h2>Distribution by source</h2>
+    {% set smax = (stats.by_source[0][1] if stats.by_source else 1) %}
+    {% for name, n in stats.by_source[:8] %}
+    <div class="dist-row">
+      <div class="dist-label mono">{{ name }}</div>
+      <div class="dist-bar"><div class="dist-fill" style="width: {{ (100 * n / smax) | round(1) }}%"></div></div>
+      <div class="dist-num">{{ n }}</div>
+    </div>
+    {% endfor %}
+    {% if not stats.by_source %}<div class="muted small">no data</div>{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Latest events</h2>
+  <div class="events">
+    {% for it in items %}{{ m.event_row(it) }}{% endfor %}
+    {% if not items %}<div class="empty">no items for this run yet - trigger a collection from the sidebar</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

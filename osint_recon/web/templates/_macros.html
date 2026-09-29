@@ -1,0 +1,10 @@
+{% macro event_row(it) %}
+<a class="event b-{{ bucket_of(it.category) }}" href="/item/{{ it.id }}">
+  <span class="time mono">{{ (it.collected_at or '')[11:19] }}</span>
+  <span class="badge">{{ it.category }}</span>
+  <span class="val mono">{{ it.value[:160] }}</span>
+  {% for t in (it.tags or [])[:3] %}<span class="tagchip">{{ t }}</span>{% endfor %}
+  {% if it.redacted %}<span class="redact-flag">redacted</span>{% endif %}
+  <span class="src">{{ it.source }}</span>
+</a>
+{% endmacro %}

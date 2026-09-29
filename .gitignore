@@ -1,3 +1,6 @@
-# Compiled and build artifacts
+# Python cache and compiled files
 __pycache__/
 *.pyc
+
+# Generated data/cache/runs directories (binary/meta artifacts)
+data/cache/

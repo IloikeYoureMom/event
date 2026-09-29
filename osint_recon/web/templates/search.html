@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}Search - osint recon{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Search</h1>
+  <div class="sub">query collected intel across all runs</div>
+</div>
+
+<form class="filters" method="get" action="/search">
+  <input type="text" name="q" placeholder="free text: value, tag, attribute..." value="{{ q }}">
+  <select name="category">
+    <option value="">all categories</option>
+    {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == category }}>{{ c }}</option>{% endfor %}
+  </select>
+  <select name="source">
+    <option value="">all sources</option>
+    {% for s in sources_list %}<option value="{{ s }}" {{ 'selected' if s == source }}>{{ s }}</option>{% endfor %}
+  </select>
+  <input type="text" name="run" placeholder="run id (optional)" value="{{ run }}">
+  <button class="btn-ghost" type="submit">SEARCH</button>
+</form>
+
+<div class="panel">
+  <h2>{{ items | length }} result{{ '' if items | length == 1 else 's' }}</h2>
+  <div class="events">
+    {% for it in items %}{{ m.event_row(it) }}{% endfor %}
+    {% if q or category or source %}{% if not items %}<div class="empty">no matches</div>{% endif %}{% else %}
+    <div class="empty">enter a query or pick filters above</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

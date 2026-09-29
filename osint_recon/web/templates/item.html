@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ item.category }} - osint recon{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ item.category }}</h1>
+  <div class="sub">item <span class="mono">{{ item.id }}</span> from run <span class="mono">{{ item._run }}</span></div>
+</div>
+
+<div class="panel">
+  <h2>Details</h2>
+  <div class="detail-kv">
+    <div class="k">Value</div><div class="v mono">{{ item.value }}</div>
+    <div class="k">Source</div><div class="v mono">{{ item.source }}</div>
+    <div class="k">Source ref</div><div class="v mono">{% if item.source_ref %}<a href="{{ item.source_ref }}">{{ item.source_ref }}</a>{% else %}-{% endif %}</div>
+    <div class="k">Collected</div><div class="v mono">{{ item.collected_at }}</div>
+    <div class="k">TLP</div><div class="v">{{ item.tlp }}</div>
+    <div class="k">Confidence</div><div class="v">{{ item.confidence }}</div>
+    <div class="k">Redacted</div><div class="v">{{ 'yes' if item.redacted else 'no' }}</div>
+    <div class="k">Tags</div><div class="v">{% for t in item.tags or [] %}<span class="tagchip">{{ t }}</span> {% endfor %}</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Attributes</h2>
+  <pre class="json mono">{{ item.attributes | tojson(indent=2) }}</pre>
+</div>
+
+<div class="panel">
+  <h2>Full record</h2>
+  <pre class="json mono">{{ item | tojson(indent=2) }}</pre>
+</div>
+{% endblock %}

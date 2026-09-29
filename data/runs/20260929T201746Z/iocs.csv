@@ -1,0 +1,15 @@
+type,value,source,first_seen,tlp,confidence,tags,source_ref
+url,http://103.143.167.155:46005/i,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://103.172.186.170:49799/bin.sh,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://115.55.247.199:46407/bin.sh,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://115.55.247.199:46407/i,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://220.202.77.48:45103/i,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://42.233.30.188:50321/bin.sh,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,http://42.233.30.188:50321/i,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925117,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925118,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925119,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925120,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925121,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925122,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
+url,https://urlhaus.abuse.ch/url/3925123,text_feeds:urlhaus_urls,2026-09-29T20:17:49Z,CLEAR,0.5,phishing;malware-url;urlhaus_urls,https://urlhaus.abuse.ch/downloads/csv_recent/
