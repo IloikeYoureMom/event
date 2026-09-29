@@ -154,6 +154,37 @@ class RunJob:
             self.returncode = -1
         self.finished = time.time()
 
+    @classmethod
+    def spawn(cls, target_fn) -> "RunJob":
+        job = cls()
+        job.started = time.time()
+        job.status = "running"
+
+        def _wrapped():
+            try:
+                target_fn(job)
+            except Exception as exc:
+                job.output.append(str(exc))
+                job.status = "failed"
+                job.returncode = -1
+            finally:
+                if job.status == "running":
+                    job.status = "done"
+                job.finished = time.time()
+
+        job.thread = threading.Thread(target=_wrapped, daemon=True)
+        job.thread.start()
+        with _jobs_lock:
+            _jobs[str(job.started)] = job
+        return job
+
+    def log(self, msg: str) -> None:
+        self.output.append(msg)
+
+    def finish(self, code: int) -> None:
+        self.returncode = code
+        self.status = "done" if code == 0 else "failed"
+
 
 _jobs: dict[str, RunJob] = {}
 _jobs_lock = threading.Lock()

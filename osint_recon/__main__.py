@@ -20,6 +20,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="print available collectors and exit")
     ap.add_argument("--dry-run", action="store_true",
                     help="show which collectors would run, fetch nothing")
+    ap.add_argument("--serve", action="store_true",
+                    help="launch collector, then start web UI (one command)")
+    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
@@ -50,6 +54,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {c.name}")
         if not cols:
             print("  (none - check enabled flags in config)")
+        return 0
+
+    from .web import create_app, RunJob
+
+    if args.serve:
+        def _collect(job: RunJob) -> None:
+            job.log("collector starting")
+            rd = pipe.run()
+            job.log(f"run complete -> {rd}")
+            job.finish(0)
+
+        RunJob.spawn(_collect)
+
+        app = create_app()
+        url = f"http://{args.host}:{args.port}"
+        print(f"osint_recon UI live -> {url}")
+        app.run(host=args.host, port=args.port, debug=False, threaded=True)
         return 0
 
     run_dir = pipe.run()
