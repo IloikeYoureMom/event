@@ -103,21 +103,37 @@ class HttpClient:
 
     def __init__(self, user_agent: str | None = None,
                  respect_robots: bool = True, min_delay: float = 2.0,
-                 timeout: float = 30.0, retries: int = 2):
+                 timeout: float = 30.0, retries: int = 2, max_workers: int = 8):
         self.ua = user_agent or self.DEFAULT_UA
         self.respect_robots = respect_robots
         self.limiter = RateLimiter(min_delay)
         self.timeout = timeout
         self.retries = retries
+        self.max_workers = max_workers
+        self._pool: dict[str, Any] = {}
+        self._pool_lock = threading.Lock()
+
+    def _get_pool(self, scheme: str):
+        with self._pool_lock:
+            if scheme not in self._pool:
+                import urllib3
+                self._pool[scheme] = urllib3.PoolManager(
+                    num_pools=self.max_workers, maxsize=self.max_workers,
+                    timeout=urllib3.Timeout(connect=min(10.0, self.timeout),
+                                            read=self.timeout),
+                    retries=False)
+            return self._pool[scheme]
 
     def get(self, url: str, headers: dict[str, str] | None = None,
-            allow_robots_override: bool = False) -> "HttpResponse":
+            allow_robots_override: bool = False,
+            skip_rate_limit: bool = False) -> "HttpResponse":
         if self.respect_robots and not allow_robots_override \
                 and not robots_allows(url, self.ua):
             return HttpResponse(url=url, status=0, error="blocked-by-robots.txt")
         last_err: str = ""
         for attempt in range(self.retries + 1):
-            self.limiter.wait(url)
+            if not skip_rate_limit:
+                self.limiter.wait(url)
             try:
                 return self._fetch_once(url, headers)
             except Exception as exc:
@@ -126,6 +142,14 @@ class HttpClient:
                     break
                 time.sleep((2 ** attempt) + random.random())
         return HttpResponse(url=url, status=0, error=last_err)
+
+    def get_many(self, urls: list[str],
+                 headers: dict[str, str] | None = None,
+                 skip_rate_limit: bool = False) -> list["HttpResponse"]:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(self.max_workers, max(1, len(urls)))) as ex:
+            return list(ex.map(
+                lambda u: self.get(u, headers, skip_rate_limit=skip_rate_limit), urls))
 
     def post_form(self, url: str, data: str,
                   headers: dict[str, str] | None = None) -> "HttpResponse":
@@ -137,25 +161,37 @@ class HttpClient:
 
     def _request(self, url: str, data: bytes | None,
                  headers: dict[str, str] | None) -> "HttpResponse":
-        import gzip
-        import io
-
+        parts = urllib.parse.urlsplit(url)
+        scheme = parts.scheme or "https"
+        target = urllib.parse.urlunsplit(("", "", parts.path or "/",
+                                          parts.query, parts.fragment))
         req_headers = {
             "User-Agent": self.ua,
             "Accept": "*/*",
-            "Accept-Encoding": "gzip",
+            "Host": parts.netloc,
         }
         if headers:
             req_headers.update(headers)
-        req = urllib.request.Request(url, data=data, headers=req_headers)
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+        pool = self._get_pool(scheme)
+        resp = pool.request("POST" if data is not None else "GET",
+                            f"{scheme}://{parts.netloc}{target}",
+                            body=data, headers=req_headers, preload_content=False)
+        try:
             raw = resp.read()
-            if resp.headers.get("Content-Encoding", "") == "gzip":
-                raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
-            body = raw.decode(resp.headers.get_content_charset() or "utf-8",
-                              errors="replace")
-            return HttpResponse(url=resp.geturl(), status=resp.status,
-                                body=body, headers=dict(resp.headers))
+        finally:
+            resp.close()
+        charset = resp.headers.get("Content-Type", "")
+        enc = ""
+        m = re.search(r"charset=([\w-]+)", charset)
+        if m:
+            enc = m.group(1)
+        body = raw.decode(enc or "utf-8", errors="replace")
+        final_url = resp.headers.get("X-Url") or url
+        if 300 <= resp.status < 400 and resp.headers.get("Location"):
+            loc = urllib.parse.urljoin(url, resp.headers["Location"])
+            return self._request(loc, data, headers)
+        return HttpResponse(url=final_url, status=resp.status,
+                            body=body, headers=dict(resp.headers))
 
 
 class HttpResponse:

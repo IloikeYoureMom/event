@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import quote
 
 from ..models import IntelItem
 from .base import Collector
 
 API = "https://api.github.com"
+RATE_LIMIT_HEADERS = ("x-ratelimit-limit", "x-ratelimit-remaining", "retry-after")
 
 
 class GithubSearchCollector(Collector):
@@ -19,24 +23,42 @@ class GithubSearchCollector(Collector):
 
     DEFAULT_QUERIES = [
         "shai-hulud", "trivyvix", "npm-worm", "s1ngularity",
-        '"config.npmrc" AND "publishConfig"',   # worm-published package tell
+        '"config.npmrc" AND "publishConfig"',
     ]
 
-    def collect(self) -> Iterable[IntelItem]:
+    def _headers(self) -> dict[str, str]:
         token = os.getenv("GITHUB_TOKEN") or self.cfg.get("token", "")
         headers = {"Accept": "application/vnd.github+json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
-        else:
+        return headers
+
+    def _note_rate_limit(self, resp) -> None:
+        low = {k.lower(): v for k, v in resp.headers.items()}
+        rem = low.get("x-ratelimit-remaining")
+        lim = low.get("x-ratelimit-limit")
+        if rem is not None and lim not in (None, "60"):
+            self.log.info("github api remaining=%s/%s", rem, lim)
+
+    def collect(self) -> Iterable[IntelItem]:
+        token = os.getenv("GITHUB_TOKEN") or self.cfg.get("token", "")
+        headers = self._headers()
+        if not token:
             self.log.info("no GITHUB_TOKEN: unauthenticated rate limit (10/min)")
         queries = list(self.DEFAULT_QUERIES) + list(self.cfg.get("queries", []))
-        since = self.cfg.get("since", "")      # ISO date, e.g. created:>2025-09-01
+        since = self.cfg.get("since", "")
+        urls = []
         for q in queries:
             full = f"{q} {('created:>=' + since) if since else ''}".strip()
-            url = f"{API}/search/repositories?q={full.replace(' ', '+')}&sort=updated&per_page=30"
-            resp = self.http.get(url, headers=headers)
+            urls.append((q, f"{API}/search/repositories?q={quote(full)}&sort=updated&per_page=30"))
+        resps = self.http.get_many([u for _, u in urls], headers=headers,
+                                   skip_rate_limit=bool(token))
+        for (q, _), resp in zip(urls, resps):
+            self._note_rate_limit(resp)
             if not resp.ok:
                 self.log.warning("gh search %r failed (%s)", q, resp.error or resp.status)
+                if resp.status == 403 or resp.status == 429:
+                    break
                 continue
             try:
                 data = resp.json()
@@ -59,7 +81,7 @@ class GithubIocRepoCollector(Collector):
 
     name = "github_ioc_repos"
 
-    DEFAULT_REPOS = ["digitalside/threat-actor"]
+    DEFAULT_REPOS: list[str] = []
 
     def collect(self) -> Iterable[IntelItem]:
         repos = self.cfg.get("repos", self.DEFAULT_REPOS)
@@ -69,13 +91,11 @@ class GithubIocRepoCollector(Collector):
         stix = StixFileCollector({"cache_dir": str(cache)}, http=self.http)
         for repo in repos:
             dest = cache / repo.replace("/", "__")
-            if dest.exists():
-                ok = self._git(dest, "pull", "--ff-only")
-            else:
-                ok = self._git(None, "clone", "--depth", "1",
-                               f"https://github.com/{repo}.git", str(dest))
+            ok = self._git(dest, repo)
             if not ok:
-                self.log.warning("git failed for %s", repo)
+                ok = self._tarball_fallback(repo, dest)
+            if not ok:
+                self.log.warning("could not obtain %s via git or tarball", repo)
                 continue
             newest: list[Path] = []
             for p in dest.rglob("*"):
@@ -93,11 +113,57 @@ class GithubIocRepoCollector(Collector):
                                              tags=["git-repo", repo.split('/')[-1]]):
                         yield it
 
-    @staticmethod
-    def _git(cwd: Path | None, *args: str) -> bool:
+    def _git(self, dest: Path, repo: str) -> bool:
+        env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
         try:
-            r = subprocess.run(["git", *args], cwd=str(cwd) if cwd else None,
-                               capture_output=True, timeout=180)
+            if dest.exists():
+                r = subprocess.run(["git", "-C", str(dest), "pull", "--ff-only"],
+                                   capture_output=True, timeout=180, env=env)
+            else:
+                r = subprocess.run(["git", "clone", "--depth", "1", "--",
+                                    f"https://github.com/{repo}.git", str(dest)],
+                                   capture_output=True, timeout=180, env=env)
             return r.returncode == 0
         except Exception:
             return False
+
+    def _tarball_fallback(self, repo: str, dest: Path) -> bool:
+        token = os.getenv("GITHUB_TOKEN") or self.cfg.get("token", "")
+        headers = {"Accept": "application/vnd.github+json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        meta = self.http.get(f"{API}/repos/{repo}", headers=headers,
+                             skip_rate_limit=bool(token))
+        if not meta.ok:
+            return False
+        try:
+            sha = meta.json()["object"]["sha"]
+            url = meta.json()["tarball_url"]
+        except Exception:
+            return False
+        stamp = dest.parent / f".{dest.name}.sha"
+        if stamp.exists() and stamp.read_text().strip() == sha and dest.exists():
+            return True
+        blob = self.http.get(url, allow_robots_override=True)
+        if not blob.ok:
+            return False
+        import shutil
+        staging = dest.parent / f".{dest.name}.new.{os.getpid()}"
+        try:
+            staging.mkdir(parents=True, exist_ok=True)
+            with tarfile.open(fileobj=io.BytesIO(blob.body.encode(errors="replace")),
+                              mode="r:*") as tf:
+                tf.extractall(staging, filter="data")
+            inner = [p for p in staging.iterdir() if p.is_dir()]
+            src = inner[0] if len(inner) == 1 else staging
+            if dest.exists():
+                shutil.rmtree(dest)
+            src.replace(dest)
+            stamp.write_text(sha)
+            return True
+        except Exception as exc:
+            self.log.warning("tarball unpack failed for %s: %s", repo, exc)
+            return False
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging, ignore_errors=True)

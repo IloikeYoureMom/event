@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -59,6 +60,7 @@ class Pipeline:
             min_delay=float(http_cfg.get("min_delay_seconds", 2.0)),
             timeout=float(http_cfg.get("timeout_seconds", 30)),
             retries=int(http_cfg.get("retries", 2)),
+            max_workers=int(http_cfg.get("max_workers", 8)),
         )
         self.registry = Registry.bootstrap(self.state_dir / "actor_aliases.json")
 
@@ -89,23 +91,27 @@ class Pipeline:
         seen = self._load_seen()
         fresh: list[IntelItem] = []
         dupes = 0
-        for col in self.build_collectors():
-            logging.getLogger("osint_recon").info("== running %s ==", col.name)
-            for it in col.run():
-                if it.category in ("forum_post", "chat_message", "paste",
-                                   "threat_report", "stealer_log"):
-                    safe = redact_secrets(it.value)
-                    if safe.changed:
-                        it.value = safe.text
-                        it.redacted = True
-                        it.attributes["redaction_hits"] = safe.hits
-                k = it.key()
-                if k in seen:
-                    dupes += 1
-                    continue
-                seen.add(k)
-                fresh.append(it)
-            self._save_seen(seen)
+        collectors = self.build_collectors()
+        with ThreadPoolExecutor(max_workers=min(4, max(1, len(collectors)))) as ex:
+            for items in ex.map(lambda c: (c.name, list(c.run())), collectors):
+                name, col_items = items
+                logging.getLogger("osint_recon").info("== %s yielded %d items ==",
+                                                      name, len(col_items))
+                for it in col_items:
+                    if it.category in ("forum_post", "chat_message", "paste",
+                                       "threat_report", "stealer_log"):
+                        safe = redact_secrets(it.value)
+                        if safe.changed:
+                            it.value = safe.text
+                            it.redacted = True
+                            it.attributes["redaction_hits"] = safe.hits
+                    k = it.key()
+                    if k in seen:
+                        dupes += 1
+                        continue
+                    seen.add(k)
+                    fresh.append(it)
+        self._save_seen(seen)
         self._write(run_dir, fresh, dupes)
         return run_dir
 

@@ -19,27 +19,33 @@ class DocLinkHarvester(Collector):
         seen: set[str] = set()
         n = 0
         while queue and n < max_docs:
-            url = queue.popleft()
-            if url in seen:
+            batch: list[str] = []
+            while queue and len(batch) < min(self.http.max_workers, max_docs - n):
+                url = queue.popleft()
+                if url in seen:
+                    continue
+                seen.add(url)
+                host = re.sub(r"^www\.", "", re.split(r"/", url.split("//")[-1])[0]).lower()
+                if allowed_hosts and host not in allowed_hosts:
+                    continue
+                batch.append(url)
+            if not batch:
                 continue
-            seen.add(url)
-            host = re.sub(r"^www\.", "", re.split(r"/", url.split("//")[-1])[0]).lower()
-            if allowed_hosts and host not in allowed_hosts:
-                continue
-            resp = self.http.get(url)
-            if not resp.ok:
-                continue
-            n += 1
-            body = resp.body
-            is_pdf = ("%PDF" in body[:8]) or "pdf" in resp.headers.get(
-                "Content-Type", "").lower()
-            text = self._pdf_text(body) if is_pdf else re.sub(r"<[^>]+>", " ", body)
-            yield from self._emit(url, text, is_pdf)
-            if self.cfg.get("follow_links", False):
-                for m in RE_URL.finditer(text):
-                    u = m.group(0)
-                    if u.startswith("http") and u not in seen:
-                        queue.append(u)
+            resps = self.http.get_many(batch)
+            for url, resp in zip(batch, resps):
+                if not resp.ok:
+                    continue
+                n += 1
+                body = resp.body
+                is_pdf = ("%PDF" in body[:8]) or "pdf" in resp.headers.get(
+                    "Content-Type", "").lower()
+                text = self._pdf_text(body) if is_pdf else re.sub(r"<[^>]+>", " ", body)
+                yield from self._emit(url, text, is_pdf)
+                if self.cfg.get("follow_links", False):
+                    for m in RE_URL.finditer(text):
+                        u = m.group(0)
+                        if u.startswith("http") and u not in seen:
+                            queue.append(u)
 
     def _emit(self, doc_url: str, text: str, is_pdf: bool) -> Iterable[IntelItem]:
         base = re.sub(r"https?://([^/]+)/.*", r"\1", doc_url)

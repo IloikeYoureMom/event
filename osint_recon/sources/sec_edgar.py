@@ -24,27 +24,30 @@ class EdgarItem105Collector(Collector):
         q = self.cfg.get("query", '"Item 1.05"')
         end = time.strftime("%Y-%m-%d")
         start = time.strftime("%Y-%m-%d", time.gmtime(time.time() - days * 86400))
-        params = {"q": q, "forms": ",".join(forms), "dateRange": "custom",
-                  "startdt": start, "enddt": end}
-        base = FTS_URL + urlencode(params)
         max_items = int(self.cfg.get("max_items", 100))
         page_size = int(self.cfg.get("page_size", 50))
+        urls: list[str] = []
         offset = 0
+        while offset < max(200, max_items):
+            params = {"q": q, "forms": ",".join(forms), "dateRange": "custom",
+                      "startdt": start, "enddt": end}
+            urls.append(FTS_URL + urlencode(params) + f"&start={offset}")
+            if offset + page_size >= max_items or offset + 100 >= 200:
+                break
+            offset += 100
+        resps = self.http.get_many(urls, headers={"Accept": "application/json"},
+                                   skip_rate_limit=True)
         emitted = 0
-        while offset < max_items:
-            resp = self.http.get(f"{base}&start={offset}",
-                                 headers={"Accept": "application/json"})
+        for resp in resps:
             if not resp.ok:
                 self.log.warning("EDGAR FTS failed: %s", resp.error or resp.status)
-                return
+                continue
             try:
                 data = resp.json()
             except Exception as exc:
                 self.log.warning("EDGAR FTS bad json: %s", exc)
-                return
+                continue
             hits = data.get("hits", {}).get("hits", [])
-            if not hits:
-                return
             for h in hits:
                 src = h.get("_source", {})
                 items = [str(i) for i in (src.get("items") or [])]
@@ -55,7 +58,6 @@ class EdgarItem105Collector(Collector):
                 emitted += 1
                 if emitted >= max_items:
                     return
-            offset += min(len(hits), page_size)
 
     def _emit(self, src: dict) -> Iterable[IntelItem]:
         names = src.get("display_names") or ["?"]
