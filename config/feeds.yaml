@@ -22,23 +22,23 @@ sources:
     enabled: true
     urls:
       - https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz
-    paths: []            # local .stix/.tar.gz bundles you receive by email etc.
+    paths: []
 
   rss_reports:
     enabled: true
-    feeds: {}            # org -> url; ships with ~9 public vendor-lab feeds
-    filter_keywords: []  # e.g. ["ransomware", "supply chain"] to triage volume
+    feeds: {}
+    filter_keywords: []
 
   sec_8k_item105:
     enabled: true
     lookback_days: 7
-    fetch_item_text: false   # true = also pull each 8-K HTML for the narrative
+    fetch_item_text: false
     max_items: 60
 
   github_repos:
     enabled: true
-    queries: []            # extra searches beyond shai-hulud/npm-worm seeds
-    since: ""              # e.g. "2025-09-01"
+    queries: []
+    since: ""
 
   github_ioc_repos:
     enabled: true
@@ -46,34 +46,34 @@ sources:
 
   crtsh_certs:
     enabled: true
-    domains: []            # YOUR registered domains -> rogue-cert tripwire
+    domains: []
     since_id: 0
 
   ransom_leaks:
     enabled: true
-    watchlist: []          # ["Your Corp", "yourbrand.com"] -> AMBER on hit
+    watchlist: []
 
   hibp_domain:
-    enabled: false         # needs paid HIBP api-key bound to VERIFIED domains you own
-    api_key: ""            # or env HIBP_API_KEY
+    enabled: false
+    api_key: ""
     domains: []
 
   malwarebazaar_brand:
     enabled: false
-    search_terms: []       # your domains/brand strings to grep sample metadata
+    search_terms: []
 
   telegram:
-    enabled: false         # needs $TG_API_ID/$TG_API_HASH (my.telegram.org),
-    channels: []           # only channels/groups your account is authorised in
+    enabled: false
+    channels: []
     keywords: [breach, stealer, combo, yourbrand]
     history_limit: 200
 
   discord:
-    enabled: false         # needs $DISCORD_BOT_TOKEN for YOUR bot, invited to
-    channel_ids: {}        # {"<channel_id>": "#channel-name"} servers you own/join
+    enabled: false
+    channel_ids: {}
 
   forums:
-    enabled: false         # opt-in per site AFTER checking its ToS/your account
+    enabled: false
     sites: []
 
   paste_dumps:
@@ -86,13 +86,13 @@ sources:
     watch_terms: []
 
   leak_teasers:
-    enabled: false         # point at a licensed vendor teaser API
+    enabled: false
     url: ""
     token: ""
 
   doc_links:
     enabled: false
-    seed_urls: []          # report PDFs / 8-K exhibits to mine for links+IOCs
-    allowed_hosts: []      # empty = any host (still robots-limited)
-    follow_links: false    # keep off unless you have a scoped crawl policy
+    seed_urls: []
+    allowed_hosts: []
+    follow_links: false
     max_docs: 25
