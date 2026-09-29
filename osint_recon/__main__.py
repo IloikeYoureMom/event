@@ -60,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.serve:
         def _collect(job: RunJob) -> None:
+            job.only = args.only
             job.log("collector starting")
             rd = pipe.run()
             job.log(f"run complete -> {rd}")
