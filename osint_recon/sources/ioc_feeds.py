@@ -28,19 +28,20 @@ class TextFeedCollector(Collector):
             "kind": "csv", "column_hint": "ip", "tags": "c2,botnet",
         },
         "threatfox_c2": {
-            "url": "https://threatfox.abuse.ch/export/text/recent/",
-            "kind": "text", "column_hint": "auto", "tags": "c2",
+            "url": "https://threatfox.abuse.ch/export/csv/recent/",
+            "kind": "ioc_csv", "tags": "c2",
         },
     }
 
     def collect(self) -> Iterable[IntelItem]:
         feeds = dict(self.DEFAULT_FEEDS)
         feeds.update(self.cfg.get("feeds", {}))
-        for fname, spec in feeds.items():
-            url = spec.get("url")
-            if not url:
-                continue
-            resp = self.http.get(url)
+        specs = [(fname, spec) for fname, spec in feeds.items() if spec.get("url")]
+        urls = [spec["url"] for _, spec in specs]
+        cache_dir = self.cfg.get("cache_dir", "data/cache/feeds")
+        responses = [self.http.cached_get(u, cache_dir) for u in urls]
+        for (fname, spec), resp in zip(specs, responses):
+            url = spec["url"]
             if not resp.ok:
                 self.log.warning("feed %s: HTTP problem (%s)", fname, resp.error or resp.status)
                 continue
@@ -51,7 +52,37 @@ class TextFeedCollector(Collector):
     def _parse(self, feed: str, url: str, kind: str, hint: str,
                body: str, tags: list[str]) -> Iterable[IntelItem]:
         from .base import iocs_from_text
-        if kind == "csv":
+        if kind == "ioc_csv":
+            import csv
+            for row in csv.reader(io.StringIO(body)):
+                if not row or row[0].startswith("#"):
+                    continue
+                cells = [c.strip().strip('"').strip() for c in row]
+                ioc_type = ""
+                ioc_value = ""
+                first_seen = None
+                for cell in cells:
+                    cl = cell.lower()
+                    if cl in ("ip:port", "ip", "domain", "url", "md5", "sha1",
+                              "sha256", "email"):
+                        ioc_type = cl
+                    elif re.fullmatch(r"\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?", cell):
+                        if first_seen is None:
+                            first_seen = cell.replace(" ", "T") + "Z"
+                    elif ioc_value == "" and len(cell) > 3 and not cell.isdigit():
+                        ioc_value = cell
+                cat = {"ip:port": "ioc_ipv4", "ip": "ioc_ipv4", "domain": "ioc_domain",
+                       "url": "ioc_url", "md5": "ioc_md5", "sha1": "ioc_sha1",
+                       "sha256": "ioc_sha256"}.get(ioc_type)
+                if not cat or not ioc_value:
+                    continue
+                value = ioc_value
+                if cat == "ioc_ipv4":
+                    value = ioc_value.rsplit(":", 1)[0]
+                yield IntelItem(category=cat, value=value, source=f"{self.name}:{feed}",
+                                source_ref=url, first_seen=first_seen,
+                                tags=tags + [feed])
+        elif kind == "csv":
             import csv
             rows = list(csv.reader(io.StringIO(body)))
             for row in rows:
@@ -89,20 +120,21 @@ class StixFileCollector(Collector):
 
     def collect(self) -> Iterable[IntelItem]:
         paths = [Path(p) for p in self.cfg.get("paths", []) if Path(p).exists()]
-        urls = self.cfg.get("urls", [
-            "https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz",
-        ])
+        urls = [u for u in self.cfg.get("urls", [
+            "https://sslbl.abuse.ch/blacklist/sslblacklist.csv",
+        ]) if u]
         tmp = Path(self.cfg.get("cache_dir", "data/cache/stix"))
         tmp.mkdir(parents=True, exist_ok=True)
         for u in urls:
-            if re.match(r"^https?://", u):
-                resp = self.http.get(u)
-                if not resp.ok:
-                    self.log.warning("stix url %s failed", u)
-                    continue
-                dest = tmp / re.sub(r"\W+", "_", u)[-60:]
-                dest.write_bytes(resp.body.encode(errors="replace"))
-                paths.append(dest)
+            if not re.match(r"^https?://", u):
+                continue
+            resp = self.http.cached_get(u, tmp)
+            if not resp.ok:
+                self.log.warning("stix url %s failed (%s)", u, resp.error or resp.status)
+                continue
+            dest = tmp / re.sub(r"\W+", "_", u)[-60:]
+            dest.write_bytes(resp.body.encode(errors="replace"))
+            paths.append(dest)
         for p in paths:
             yield from self._ingest_path(p)
 
