@@ -17,6 +17,7 @@ RE_105_BLOCK = re.compile(
 
 class EdgarItem105Collector(Collector):
     name = "sec_8k_item105"
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         days = int(self.cfg.get("lookback_days", 7))

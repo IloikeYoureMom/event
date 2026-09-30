@@ -11,6 +11,7 @@ from .base import Collector
 
 class RansomLeakCollector(Collector):
     name = "ransom_leaks"
+    enabled_by_default = False
 
     DEFAULT_SOURCES = {
         "ransomware_live": "https://api.ransomware.live/v1/recentvictims?limit=200",

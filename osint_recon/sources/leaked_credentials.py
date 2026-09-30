@@ -12,12 +12,12 @@ from .base import Collector
 class HibpDomainCollector(Collector):
 
     name = "hibp_domain"
-    enabled_by_default = True
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         api_key = self.cfg.get("api_key") or os.getenv("HIBP_API_KEY", "")
         if not api_key:
-            self.log.info("HIBP skipped: set config.hibp.api_key or $HIBP_API_KEY")
+            self.log.info("hibp_domain requires external API credentials; skipped in no-api mode")
             return
         domains = self.cfg.get("domains", [])
         for d in domains:
@@ -52,7 +52,7 @@ class HibpDomainCollector(Collector):
 class SecsgnTeaserCollector(Collector):
 
     name = "leak_teasers"
-    enabled_by_default = True
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         url = self.cfg.get("url")

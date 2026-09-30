@@ -118,10 +118,13 @@ def scan_text(text: str) -> list[tuple[str, str]]:
 class GithubSearchCollector(Collector):
     name = "github_repos"
 
-    DEFAULT_REPOS = [
+    WATCH_REPOS = [
         "digitalside/threat-actor",
         "brianklaas/Threat-Actor-Name-Database",
         "centerforsecurityanddemocracy/public_threat_lists",
+        "blackorbird/APT_REPORT",
+        "nradwinski/threat-actor-json",
+        "0x4d31/awesome-osint",
     ]
 
     DEFAULT_QUERIES = [
@@ -146,8 +149,18 @@ class GithubSearchCollector(Collector):
     def collect(self) -> Iterable[IntelItem]:
         token = os.getenv("GITHUB_TOKEN") or self.cfg.get("token", "")
         headers = self._headers()
+        for extra in list(self.WATCH_REPOS) + list(self.cfg.get("repos", [])):
+            yield IntelItem(
+                category="github_repo", value=extra, source=self.name,
+                source_ref=f"https://github.com/{extra}",
+                confidence=0.5, tlp="CLEAR", tags=["github", "watchlist"],
+                attributes={"description": "", "stars": None,
+                            "owner_type": "Organization", "pushed_at": None,
+                            "topics": []},
+            )
         if not token:
-            self.log.info("no GITHUB_TOKEN: unauthenticated rate limit (10/min)")
+            self.log.info("no GITHUB_TOKEN: search endpoint needs external API credentials; watchlist only")
+            return
         queries = list(self.DEFAULT_QUERIES) + list(self.cfg.get("queries", []))
         since = self.cfg.get("since", "")
         urls = []
@@ -276,6 +289,15 @@ class GithubSecretScanCollector(Collector):
 
     name = "github_secrets"
 
+    WATCH_REPOS = [
+        "digitalside/threat-actor",
+        "brianklaas/Threat-Actor-Name-Database",
+        "centerforsecurityanddemocracy/public_threat_lists",
+        "blackorbird/APT_REPORT",
+        "nradwinski/threat-actor-json",
+        "0x4d31/awesome-osint",
+    ]
+
     DEFAULT_QUERIES = [
         '"shai-hulud" OR "npm-worm" OR "trivyvix"',
         '"config.npmrc" "publishConfig"',
@@ -348,7 +370,7 @@ class GithubSecretScanCollector(Collector):
         return paths[: int(self.cfg.get("max_tree_files", 300))]
 
     def collect(self) -> Iterable[IntelItem]:
-        for extra in self.DEFAULT_REPOS:
+        for extra in self.WATCH_REPOS:
             yield IntelItem(
                 category="github_repo", value=extra, source=self.name,
                 source_ref=f"https://github.com/{extra}",

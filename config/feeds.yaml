@@ -1,5 +1,5 @@
 http:
-  user_agent: YourTeam intel-team@yourorg.example
+  user_agent: osint-recon/0.1 (threat-intel research tool; contact=intel-team@yourorg.example)
   respect_robots: true
   min_delay_seconds: 2.0
   timeout_seconds: 30
@@ -23,12 +23,12 @@ sources:
     feeds: {}
     filter_keywords: []
   sec_8k_item105:
-    enabled: true
+    enabled: false
     lookback_days: 7
     fetch_item_text: false
     max_items: 60
   github_repos:
-    enabled: true
+    enabled: false
     queries: []
     since: ''
   github_ioc_repos:
@@ -38,7 +38,7 @@ sources:
     - brianklaas/Threat-Actor-Name-Database
     - centerforsecurityanddemocracy/public_threat_lists
   github_secrets:
-    enabled: true
+    enabled: false
     use_code_search: false
     max_repos: 25
     max_files_per_repo: 40
@@ -47,26 +47,26 @@ sources:
     - gitleaks/gitleaks
     - tleyden/keynuker
   crtsh_certs:
-    enabled: true
+    enabled: false
     domains:
     - abuse.ch
     - urlhaus.abuse.ch
     since_id: 0
   ransom_leaks:
-    enabled: true
+    enabled: false
     watchlist: []
   hibp_domain:
-    enabled: true
+    enabled: false
     api_key: ''
     domains: []
   malwarebazaar_brand:
-    enabled: true
+    enabled: false
     search_terms:
     - stealer
     - redline
     - vidar
   telegram:
-    enabled: true
+    enabled: false
     channels: []
     keywords:
     - breach
@@ -74,16 +74,26 @@ sources:
     - combo
     history_limit: 200
   discord:
-    enabled: true
+    enabled: false
     channel_ids: {}
   forums:
-    enabled: true
+    enabled: false
     sites: []
   paste_dumps:
-    enabled: true
+    enabled: false
     dump_urls: []
     watch_terms:
     - yourbrand.com
+  leak_teasers:
+    enabled: false
+    url: ''
+    token: ''
+  doc_links:
+    enabled: false
+    seed_urls: []
+    allowed_hosts: []
+    follow_links: false
+    max_docs: 25
   rentry_search:
     enabled: true
     watch_terms:
@@ -91,13 +101,29 @@ sources:
     - combo
     - stealer
     - db
-  leak_teasers:
+  telegram_web:
     enabled: true
-    url: ''
-    token: ''
-  doc_links:
+    channels:
+    - vxunderground
+    - durov
+    keywords:
+    - breach
+    - stealer
+    - db
+    - combo
+    - panel
+    - log
+    - sale
+    filter_by_keywords: false
+    pages: 1
+    delay_seconds: 2.0
+    discover_channels: true
+    max_discovered: 5
+  discord_public:
     enabled: true
-    seed_urls: []
-    allowed_hosts: []
-    follow_links: false
-    max_docs: 25
+    invite_codes:
+    - discord
+    - dfYQ4VGnqZ
+    crawl_pages: 1
+    max_invites: 40
+    delay_seconds: 1.5
