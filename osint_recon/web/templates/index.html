@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m %}
-{% block title %}Events - osint recon{% endblock %}
+{% block title %}Dashboard - osint recon{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>Event stream</h1>
-  <div class="sub">run <span class="mono">{{ selected or 'all' }}</span> &middot; {{ stats.total }} items collected</div>
+  <h1>Collection dashboard</h1>
+  <div class="sub">{{ stats.total }} intel objects &middot; {{ runs | length }} runs &middot; latest run <span class="mono">{{ runs[0].run if runs else 'none' }}</span></div>
 </div>
 
 <div class="cards">
   <div class="card hot"><div class="k">Total items</div><div class="v">{{ stats.total }}</div></div>
-  {% for name, n in stats.by_category[:4] %}
-  <div class="card"><div class="k">{{ name }}</div><div class="v">{{ n }}</div></div>
+  {% for name, n in stats.by_bucket[:5] %}
+  <a class="card" href="/search?bucket={{ name }}"><div class="k btxt-{{ name }}">{{ name }}</div><div class="v">{{ n }}</div></a>
   {% endfor %}
+  <div class="card"><div class="k">Redacted</div><div class="v">{{ stats.redacted }}</div></div>
 </div>
 
 {% if stats.timeline %}
@@ -21,16 +22,16 @@
 </div>
 {% endif %}
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 22px;">
+<div class="cols2">
   <div class="panel">
     <h2>Distribution by category</h2>
     {% set cmax = (stats.by_category[0][1] if stats.by_category else 1) %}
     {% for name, n in stats.by_category[:8] %}
-    <div class="dist-row">
+    <a class="dist-row" href="/search?category={{ name }}">
       <div class="dist-label mono">{{ name }}</div>
-      <div class="dist-bar"><div class="dist-fill" style="width: {{ (100 * n / cmax) | round(1) }}%"></div></div>
+      <div class="dist-bar"><div class="dist-fill b-{{ bucket_of(name) }}" style="width: {{ (100 * n / cmax) | round(1) }}%"></div></div>
       <div class="dist-num">{{ n }}</div>
-    </div>
+    </a>
     {% endfor %}
     {% if not stats.by_category %}<div class="muted small">no data</div>{% endif %}
   </div>
@@ -38,21 +39,21 @@
     <h2>Distribution by source</h2>
     {% set smax = (stats.by_source[0][1] if stats.by_source else 1) %}
     {% for name, n in stats.by_source[:8] %}
-    <div class="dist-row">
+    <a class="dist-row" href="/search?source={{ name }}">
       <div class="dist-label mono">{{ name }}</div>
       <div class="dist-bar"><div class="dist-fill" style="width: {{ (100 * n / smax) | round(1) }}%"></div></div>
       <div class="dist-num">{{ n }}</div>
-    </div>
+    </a>
     {% endfor %}
     {% if not stats.by_source %}<div class="muted small">no data</div>{% endif %}
   </div>
 </div>
 
 <div class="panel">
-  <h2>Latest events</h2>
+  <h2>Latest events <a class="more" href="/events/{{ runs[0].run if runs else '' }}">view all &raquo;</a></h2>
   <div class="events">
-    {% for it in items %}{{ m.event_row(it) }}{% endfor %}
-    {% if not items %}<div class="empty">no items for this run yet - trigger a collection from the sidebar</div>{% endif %}
+    {% for it in items[:40] %}{{ m.event_row(it) }}{% endfor %}
+    {% if not items %}<div class="empty">no items yet - press RUN to start a collection</div>{% endif %}
   </div>
 </div>
 {% endblock %}

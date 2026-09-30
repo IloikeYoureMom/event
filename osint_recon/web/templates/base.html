@@ -7,40 +7,28 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
-<div class="shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark"></span>
-      <div>
-        <div class="brand-name">OSINT RECON</div>
-        <div class="brand-sub">multi-source collection</div>
-      </div>
-    </div>
-    <nav class="nav">
-      <a href="/" class="nav-item {{ 'active' if active == 'events' }}">Events</a>
-      <a href="/sources" class="nav-item {{ 'active' if active == 'sources' }}">Sources</a>
-      <a href="/search" class="nav-item {{ 'active' if active == 'search' }}">Search</a>
-    </nav>
-    <div class="side-section">
-      <div class="side-title">Runs</div>
-      {% for r in runs[:8] %}
-      <a class="run-link {{ 'sel' if selected == r.run }}" href="/events/{{ r.run }}">
-        <span class="mono">{{ r.run }}</span>
-        <span class="run-count">{{ r.items }}</span>
-      </a>
-      {% endfor %}
-      {% if not runs %}<div class="muted small">no runs yet</div>{% endif %}
-    </div>
-    <div class="side-foot">
-      <button id="trigger-btn" class="btn-run">RUN COLLECTION</button>
-      <input id="trigger-only" class="inp-mini" placeholder="optional: only=ransom_leaks,sec_8k_item105">
-      <div id="trigger-status" class="muted small"></div>
-    </div>
-  </aside>
-  <main class="main">
-    {% block content %}{% endblock %}
-  </main>
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark"></span>
+    <span class="brand-name">OSINT&nbsp;RECON</span>
+  </a>
+  <nav class="nav">
+    <a href="/" class="nav-item {{ 'active' if active == 'events' and not selected }}">Dashboard</a>
+    <a href="/events" class="nav-item {{ 'active' if active == 'events' and selected }}">Events</a>
+    <a href="/sources" class="nav-item {{ 'active' if active == 'sources' }}">Sources</a>
+  </nav>
+  <form class="topsearch" method="get" action="/search">
+    <input type="search" name="q" placeholder="search values, tags, attributes..." value="{{ args.get('q', '') }}" autofocus>
+  </form>
+  <div class="jobbox">
+    <button id="trigger-btn" class="btn-run">RUN</button>
+    <span id="trigger-status" class="muted small"></span>
+  </div>
+</header>
+<div class="page">
+  {% block content %}{% endblock %}
 </div>
+<input type="hidden" id="last-run" value="{{ runs[0].run if runs else '' }}">
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
