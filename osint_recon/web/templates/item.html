@@ -9,8 +9,12 @@
 
 <div class="panel">
   <h2>Details</h2>
+  {% if item._canon and group | length > 1 %}
+  <div class="cross-note">canonical entity seen in {{ group | length }} records across {{ sources_count }} source{{ '' if sources_count == 1 else 's' }}</div>
+  {% endif %}
   <div class="detail-kv">
     <div class="k">Value</div><div class="v mono breakable">{{ item.value }}</div>
+    {% if item._canon %}<div class="k">Canonical</div><div class="v mono breakable">{{ item._canon }}</div>{% endif %}
     <div class="k">Source</div><div class="v mono"><a href="/search?source={{ item.source.split(':')[0] }}">{{ item.source }}</a></div>
     <div class="k">Source ref</div><div class="v mono">{% if item.source_ref %}<a href="{{ item.source_ref }}" rel="noopener noreferrer nofollow" target="_blank">{{ item.source_ref }}</a>{% else %}-{% endif %}</div>
     <div class="k">Collected</div><div class="v mono">{{ item.collected_at }}</div>
@@ -28,9 +32,9 @@
 
 {% if related | length > 1 %}
 <div class="panel">
-  <h2>Related objects with same value</h2>
+  <h2>Cross-source sightings ({{ group | length }})</h2>
   <div class="events">
-    {% for it in related if it.id != item.id %}{{ m.event_row(it) }}{% endfor %}
+    {% for it in related %}{{ m.event_row(it) }}{% endfor %}
   </div>
 </div>
 {% endif %}
