@@ -28,6 +28,11 @@ from .sources.sec_edgar import EdgarItem105Collector
 from .sources.pastes import PublicPasteDumpCollector, RentrySearchCollector
 from .sources.github_watch import GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector
 from .sources.documents import DocLinkHarvester
+from .sources.open_sources import (
+    OpenPhishCollector, UrlhausDumpCollector, PhishTankCollector,
+    EmergingCompromisedCollector, ThreatFoxCsvCollector, ExploitDbCvesCollector,
+    SslblFingerprintCollector, RansomwareLiveProfilesCollector,
+    HostsBlocklistCollector, OnionooRelayCollector)
 from .sources.base import HttpClient
 
 ALL_COLLECTOR_CLASSES = [
@@ -40,6 +45,10 @@ ALL_COLLECTOR_CLASSES = [
     PublicPasteDumpCollector, RentrySearchCollector,
     GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector,
     DocLinkHarvester,
+    OpenPhishCollector, UrlhausDumpCollector, PhishTankCollector,
+    EmergingCompromisedCollector, ThreatFoxCsvCollector, ExploitDbCvesCollector,
+    SslblFingerprintCollector, RansomwareLiveProfilesCollector,
+    HostsBlocklistCollector, OnionooRelayCollector,
 ]
 
 
