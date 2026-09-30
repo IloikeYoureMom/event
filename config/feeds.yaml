@@ -10,6 +10,29 @@ watch_terms:
 output:
   data_dir: data
 sources:
+  openphish_feeds:
+    enabled: true
+  urlhaus_dump:
+    enabled: true
+  phishtank_urls:
+    enabled: true
+    limit: 2000
+  emerging_compromised:
+    enabled: true
+  threatfox_csv:
+    enabled: true
+  exploitdb_cves:
+    enabled: true
+  sslbl_fingerprints:
+    enabled: true
+  ransomware_live_profiles:
+    enabled: true
+  hosts_blocklists:
+    enabled: true
+    max_items: 5000
+  tor_relays:
+    enabled: true
+    flagged_only: false
   text_feeds:
     enabled: true
     feeds: {}
