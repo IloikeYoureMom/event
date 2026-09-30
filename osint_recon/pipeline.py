@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 import sys
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,11 @@ from .sources.sec_edgar import EdgarItem105Collector
 from .sources.pastes import PublicPasteDumpCollector, RentrySearchCollector
 from .sources.github_watch import GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector
 from .sources.documents import DocLinkHarvester
+from .sources.open_sources import (
+    OpenPhishCollector, UrlhausDumpCollector, PhishTankCollector,
+    EmergingCompromisedCollector, ThreatFoxCsvCollector, ExploitDbCvesCollector,
+    SslblFingerprintCollector, RansomwareLiveProfilesCollector,
+    HostsBlocklistCollector, OnionooRelayCollector)
 from .sources.base import HttpClient
 
 ALL_COLLECTOR_CLASSES = [
@@ -39,11 +45,23 @@ ALL_COLLECTOR_CLASSES = [
     PublicPasteDumpCollector, RentrySearchCollector,
     GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector,
     DocLinkHarvester,
+    OpenPhishCollector, UrlhausDumpCollector, PhishTankCollector,
+    EmergingCompromisedCollector, ThreatFoxCsvCollector, ExploitDbCvesCollector,
+    SslblFingerprintCollector, RansomwareLiveProfilesCollector,
+    HostsBlocklistCollector, OnionooRelayCollector,
 ]
 
 
 def load_config(path: str | Path) -> dict[str, Any]:
     import yaml
+    env_path = Path(".env")
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
     cfg = yaml.safe_load(Path(path).read_text()) or {}
     return cfg
 

@@ -149,7 +149,8 @@ class HttpClient:
     def cached_get(self, url: str, cache_dir: str | Path,
                    headers: dict[str, str] | None = None,
                    ttl_seconds: float = 3600.0,
-                   force: bool = False) -> "HttpResponse":
+                   force: bool = False,
+                   allow_robots_override: bool = False) -> "HttpResponse":
         import hashlib
         cdir = Path(cache_dir)
         cdir.mkdir(parents=True, exist_ok=True)
@@ -166,7 +167,8 @@ class HttpClient:
                     req_headers = {"If-Modified-Since": mtime}
                     if etag:
                         req_headers["If-None-Match"] = etag
-                    resp = self.get(url, {**req_headers, **(headers or {})})
+                    resp = self.get(url, {**req_headers, **(headers or {})},
+                              allow_robots_override=allow_robots_override)
                     if resp.status == 304:
                         fresh = True
                         resp = HttpResponse(url=url, status=200,
@@ -184,7 +186,7 @@ class HttpClient:
                         resp = HttpResponse(url=url, status=200,
                                             body=body_path.read_text(errors="replace"))
                     else:
-                        resp = self.get(url, headers)
+                        resp = self.get(url, headers, allow_robots_override=allow_robots_override)
                         if resp.ok:
                             fresh = True
                             meta_path.write_text(f"{resp.headers.get('ETag', '')}\n"
@@ -194,7 +196,7 @@ class HttpClient:
                 fresh = False
             if fresh:
                 return resp
-        resp = self.get(url, headers)
+        resp = self.get(url, headers, allow_robots_override=allow_robots_override)
         if resp.ok:
             meta_path.write_text(f"{resp.headers.get('ETag', '')}\n"
                                  f"{resp.headers.get('Last-Modified', '')}")
