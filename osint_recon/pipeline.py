@@ -23,7 +23,7 @@ from .sources.forums import ForumRssCollector
 from .sources.ransom_leaks import RansomLeakCollector
 from .sources.sec_edgar import EdgarItem105Collector
 from .sources.pastes import PublicPasteDumpCollector, RentrySearchCollector
-from .sources.github_watch import GithubSearchCollector, GithubIocRepoCollector
+from .sources.github_watch import GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector
 from .sources.documents import DocLinkHarvester
 from .sources.base import HttpClient
 
@@ -34,7 +34,8 @@ ALL_COLLECTOR_CLASSES = [
     TelegramCollector, DiscordCollector, ForumRssCollector,
     RansomLeakCollector, EdgarItem105Collector,
     PublicPasteDumpCollector, RentrySearchCollector,
-    GithubSearchCollector, GithubIocRepoCollector, DocLinkHarvester,
+    GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector,
+    DocLinkHarvester,
 ]
 
 

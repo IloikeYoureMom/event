@@ -1,3 +1,11 @@
+exposed_secret:8ae3************b5da
+exposed_secret:AKIA************MPJS
+exposed_secret:AKIA************OKIA
+exposed_secret:AKIA************OLIA
+exposed_secret:API-************KLPY
+exposed_secret:ASIA************10JI
+exposed_secret:PRIV*********LOCK
+exposed_secret:wJal************EX1A
 github_repo:0xsteph/patient-zero
 github_repo:a-chandrasekaran/s1ngularity-repository
 github_repo:anubissbe/supply-chain-guard-github
