@@ -16,6 +16,7 @@
     <a href="/" class="nav-item {{ 'active' if active == 'events' and not selected }}">Dashboard</a>
     <a href="/events" class="nav-item {{ 'active' if active == 'events' and selected }}">Events</a>
     <a href="/sources" class="nav-item {{ 'active' if active == 'sources' }}">Sources</a>
+    <a href="/settings" class="nav-item {{ 'active' if active == 'settings' }}">Settings</a>
   </nav>
   <form class="topsearch" method="get" action="/search">
     <input type="search" name="q" placeholder="search values, tags, attributes..." value="{{ args.get('q', '') }}" autofocus>

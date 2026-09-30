@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import threading
 import time
@@ -12,10 +13,46 @@ from flask import Flask, abort, jsonify, render_template, request
 import re
 
 from .index import get_index
+from .settings import (FORM_FIELDS, apply_env_to_process, cred_status,
+                       read_env_file, update_config, write_env_file)
 from osint_recon.models import entity_type, normalise_value
+from osint_recon.pipeline import load_config
 
 RUNS_DIR = Path("data/runs")
 STATE_DIR = Path("data/state")
+CONFIG_PATH = Path("config/feeds.yaml")
+
+
+def load_config_for_ui() -> dict:
+    env = read_env_file()
+    for k, v in env.items():
+        os.environ.setdefault(k, v)
+    return load_config(CONFIG_PATH)
+
+
+def _cfg_list(cfg: dict, source: str, key: str) -> list[str]:
+    sec = (cfg.get("sources") or {}).get(source) or {}
+    val = sec.get(key)
+    if isinstance(val, dict):
+        return [f"{k} :: {v}" if v and str(v) != str(k) else str(k) for k, v in val.items()]
+    if isinstance(val, list):
+        return [str(x) for x in val]
+    if val in (None, ""):
+        return []
+    return [str(val)]
+
+
+def _cfg_flag(cfg: dict, source: str) -> bool:
+    sec = (cfg.get("sources") or {}).get(source) or {}
+    return bool(sec.get("enabled"))
+
+
+def _mask(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "*" * len(value)
+    return f"{value[:4]}{'*' * 6}{value[-4:]}"
 
 
 def _idx():
@@ -314,6 +351,67 @@ def create_app(data_dir: Path | None = None) -> Flask:
         return render_template("item.html", item=head, related=related,
                                group=group, sources_count=sources_count,
                                active="events")
+
+    @app.route("/settings", methods=["GET", "POST"])
+    def settings():
+        cfg = load_config_for_ui()
+        saved_env = read_env_file()
+        msgs: list[str] = []
+        if request.method == "POST":
+            form = {k: request.form.get(k, "") for k in request.form}
+            creds = {}
+            for field_name, env_key in FORM_FIELDS:
+                val = form.get(field_name, "").strip()
+                if val:
+                    creds[env_key] = val
+            if creds:
+                write_env_file(creds)
+                apply_env_to_process(creds)
+                msgs.append(f"saved {len(creds)} credential(s) to .env")
+            counts = update_config(CONFIG_PATH, form)
+            if counts:
+                total_sets = sum(counts.values())
+                msgs.append(f"updated config/feeds.yaml ({total_sets} setting(s) applied)")
+            if not msgs:
+                msgs.append("nothing submitted - nothing changed")
+            cfg = load_config_for_ui()
+            saved_env = read_env_file()
+        lists = {
+            "watch_terms": [str(t) for t in cfg.get("watch_terms", [])],
+            "github_secret_repos": _cfg_list(cfg, "github_secrets", "repos"),
+            "github_search_queries": _cfg_list(cfg, "github_secrets", "queries"),
+            "telegram_channels": _cfg_list(cfg, "telegram", "channels"),
+            "discord_channels": _cfg_list(cfg, "discord", "channel_ids"),
+            "hibp_domains": _cfg_list(cfg, "hibp_domain", "domains"),
+            "forum_sites": _cfg_list(cfg, "forums", "sites"),
+            "dump_urls": _cfg_list(cfg, "paste_dumps", "dump_urls"),
+            "paste_watch_terms": _cfg_list(cfg, "paste_dumps", "watch_terms"),
+            "leak_teaser_url": (_cfg_list(cfg, "leak_teasers", "url") or [""])[0],
+            "telegram_web_channels": _cfg_list(cfg, "telegram_web", "channels"),
+            "telegram_keywords": _cfg_list(cfg, "telegram_web", "keywords"),
+            "discord_invite_codes": _cfg_list(cfg, "discord_public", "invite_codes"),
+            "crtsh_domains": _cfg_list(cfg, "crtsh_certs", "domains"),
+            "ransom_watchlist": _cfg_list(cfg, "ransom_leaks", "watchlist"),
+            "malwarebazaar_terms": _cfg_list(cfg, "malwarebazaar_brand", "search_terms"),
+            "doc_seed_urls": _cfg_list(cfg, "doc_links", "seed_urls"),
+            "rentry_terms": _cfg_list(cfg, "rentry_search", "watch_terms"),
+            "rss_feeds": _cfg_list(cfg, "rss_reports", "feeds"),
+            "stix_urls": _cfg_list(cfg, "stix_files", "urls"),
+            "text_feed_urls": _cfg_list(cfg, "text_feeds", "feeds"),
+        }
+        flags = {
+            "sec_8k_item105": _cfg_flag(cfg, "sec_8k_item105"),
+            "github_secrets": _cfg_flag(cfg, "github_secrets"),
+            "telegram": _cfg_flag(cfg, "telegram"),
+            "discord": _cfg_flag(cfg, "discord"),
+            "hibp_domain": _cfg_flag(cfg, "hibp_domain"),
+            "forums": _cfg_flag(cfg, "forums"),
+            "paste_dumps": _cfg_flag(cfg, "paste_dumps"),
+        }
+        masked_env = {k: _mask(v) for k, v in saved_env.items()}
+        return render_template("settings.html", cfg=cfg, env=masked_env,
+                               status=cred_status(), msgs=msgs, lists=lists,
+                               flags=flags, active="settings")
 
     @app.route("/api/stats")
     def api_stats():
