@@ -5,6 +5,7 @@ import html as html_mod
 import io
 import json
 import re
+import urllib.parse
 from typing import Iterable
 
 from ..models import IntelItem, stable_id
@@ -266,29 +267,91 @@ class RansomwareLiveProfilesCollector(Collector):
     name = "ransomware_live_profiles"
     enabled_by_default = True
 
-    URLS = ["https://raw.githubusercontent.com/PRISMAgroupransomwarelabs/Ransomware-Tracker/main/ransomware_groups_names.csv"]
+    SITEMAP_URL = "https://www.ransomware.live/sitemap.xml"
+    FALLBACK_URLS = [
+        "https://raw.githubusercontent.com/joshhighet/ransomwatch/main/assets/groups-kv.json",
+    ]
 
-    def collect(self) -> Iterable[IntelItem]:
-        urls = self.cfg.get("urls") or self.URLS
+    def _from_sitemap(self) -> list[IntelItem]:
         out: list[IntelItem] = []
-        for url in urls:
-            resp = self.http.cached_get(url, "data/cache", ttl_seconds=86400)
+        resp = self.http.cached_get(self.SITEMAP_URL, "data/cache",
+                                    ttl_seconds=86400, headers=self._browser_headers(),
+                                    allow_robots_override=True)
+        if not resp.ok:
+            self.log.warning("ransomware.live sitemap failed: %s status=%s",
+                             resp.error, resp.status)
+            return out
+        cap = int(self.cfg.get("max_items", 1000))
+        names: set[str] = set()
+        for match in re.finditer(r"<loc>https://www\.ransomware\.live/group/([^<#]+)</loc>",
+                                 resp.body):
+            slug = urllib.parse.unquote(match.group(1)).strip()
+            if not slug or slug.lower() in ("a",):
+                continue
+            if slug in names:
+                continue
+            names.add(slug)
+            out.append(self.item("threat_actor", slug.replace("%20", " "),
+                                 source_ref=f"https://www.ransomware.live/group/{match.group(1)}",
+                                 tlp="CLEAR", confidence=0.8,
+                                 tags=["ransomware-group", "profile-watch"],
+                                 attributes={"slug": slug}))
+            if len(out) >= cap:
+                break
+        return out
+
+    def _from_fallback(self) -> list[IntelItem]:
+        out: list[IntelItem] = []
+        for url in self.cfg.get("urls") or self.FALLBACK_URLS:
+            resp = self.http.cached_get(url, "data/cache", ttl_seconds=86400,
+                                        headers=self._browser_headers())
             if not resp.ok:
                 self.log.warning("ransomware profiles %s failed: %s status=%s",
                                  url, resp.error, resp.status)
                 continue
-            reader = csv.DictReader(io.StringIO(resp.body))
-            for row in reader:
-                name = (row.get("Ransomware Group Name") or row.get("name")
-                        or row.get("group") or "").strip()
-                link = (row.get("URL") or row.get("site") or row.get("url") or "").strip()
-                notes = (row.get("Notes") or "").strip()
+            try:
+                data = resp.json()
+            except Exception:
+                reader = csv.DictReader(io.StringIO(resp.body))
+                data = [{"name": (row.get("Ransomware Group Name") or row.get("name")
+                                  or row.get("group") or "").strip(),
+                         "profile": (row.get("URL") or row.get("site")
+                                     or row.get("url") or "").split(),
+                         "meta": (row.get("Notes") or "").strip()}
+                        for row in reader]
+            if isinstance(data, dict):
+                data = [{"name": k, "profile": v} for k, v in data.items()]
+            for entry in data:
+                name = str(entry.get("name") or entry.get("group") or "").strip()
                 if not name:
                     continue
+                profiles = entry.get("profile") or entry.get("locations") or []
+                if isinstance(profiles, dict):
+                    profiles = list(profiles.values())
+                link = ""
+                onion = ""
+                for p in profiles if isinstance(profiles, list) else []:
+                    target = p.get("fqdn", "") if isinstance(p, dict) else str(p)
+                    if not target:
+                        continue
+                    if ".onion" in target and not onion:
+                        onion = target if target.startswith("http") else f"http://{target}"
+                    elif target.startswith("http") and not link:
+                        link = target
                 out.append(self.item("threat_actor", name, source_ref=link or url,
                                      tlp="CLEAR", confidence=0.75,
                                      tags=["ransomware-group", "profile-watch"],
-                                     attributes={"leak_site": link, "notes": notes[:300]}))
+                                     attributes={"leak_site": link, "onion": onion,
+                                                 "notes": str(entry.get("meta") or "")[:300]}))
+        return out
+
+    def _browser_headers(self) -> dict:
+        return {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+
+    def collect(self) -> Iterable[IntelItem]:
+        out = self._from_sitemap()
+        if not out:
+            out = self._from_fallback()
         return out
 
 
@@ -334,7 +397,7 @@ class OnionooRelayCollector(Collector):
     name = "tor_relays"
     enabled_by_default = True
 
-    URL = "https://onionoo.torproject.org/details?type=relay&limit=250"
+    URL = "https://onionoo.torproject.org/details?limit=250"
 
     def collect(self) -> Iterable[IntelItem]:
         resp = self.http.cached_get(self.cfg.get("url", self.URL), "data/cache",
@@ -343,22 +406,29 @@ class OnionooRelayCollector(Collector):
             self.log.warning("onionoo failed: %s status=%s", resp.error, resp.status)
             return []
         try:
-            data = resp.json()
+            data = json.loads(resp.body)
         except Exception:
             return []
         out: list[IntelItem] = []
         flags_only = bool(self.cfg.get("flagged_only", False))
         for r in data.get("relays") or []:
             flags = r.get("flags") or []
-            if flags_only and not {"BadExit", "Exit"} & set(flags):
+            if flags_only and not {"BadExit", "Exit", "Guard"} & set(flags):
                 continue
-            ip = r.get("or_address") or r.get("address") or ""
+            ip = ""
+            for addr in r.get("or_addresses") or []:
+                host = addr.rsplit(":", 1)[0].strip("[]")
+                if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", host):
+                    ip = host
+                    break
+            if not ip:
+                ip = r.get("address") or ""
             fingerprint = (r.get("fingerprint") or "").lower()
             if not ip:
                 continue
             attrs = {"nickname": r.get("nickname", ""),
                      "country": r.get("country", ""),
-                     "as": r.get("as", ""),
+                     "as": str(r.get("as", "")),
                      "flags": ",".join(flags),
                      "last_seen": r.get("last_seen", "")}
             out.append(self.item("ioc_ipv4", ip, source_ref=self.URL,
