@@ -19,6 +19,8 @@ from .sources.threat_reports import RssReportCollector
 from .sources.leaked_credentials import HibpDomainCollector, SecsgnTeaserCollector
 from .sources.infected_devices import MalwareBazaarBrandCollector, CrtshRogueCertCollector
 from .sources.chats import TelegramCollector, DiscordCollector
+from .sources.telegram_web import TelegramWebCollector
+from .sources.discord_public import DiscordPublicCollector
 from .sources.forums import ForumRssCollector
 from .sources.ransom_leaks import RansomLeakCollector
 from .sources.sec_edgar import EdgarItem105Collector
@@ -31,7 +33,8 @@ ALL_COLLECTOR_CLASSES = [
     TextFeedCollector, StixFileCollector, RssReportCollector,
     HibpDomainCollector, SecsgnTeaserCollector,
     MalwareBazaarBrandCollector, CrtshRogueCertCollector,
-    TelegramCollector, DiscordCollector, ForumRssCollector,
+    TelegramCollector, DiscordCollector, TelegramWebCollector,
+    DiscordPublicCollector, ForumRssCollector,
     RansomLeakCollector, EdgarItem105Collector,
     PublicPasteDumpCollector, RentrySearchCollector,
     GithubSearchCollector, GithubIocRepoCollector, GithubSecretScanCollector,

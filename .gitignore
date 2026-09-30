@@ -2,5 +2,6 @@
 __pycache__/
 *.pyc
 
-# Data state files (runtime artifacts)
-data/state/
+# Cache and generated data directories
+data/cache/
+data/runs/

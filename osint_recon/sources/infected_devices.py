@@ -11,7 +11,7 @@ from .base import Collector
 class MalwareBazaarBrandCollector(Collector):
 
     name = "malwarebazaar_brand"
-    enabled_by_default = True
+    enabled_by_default = False
 
     API = "https://mb-api.abuse.ch/api/v1/"
 
@@ -55,6 +55,7 @@ class MalwareBazaarBrandCollector(Collector):
 class CrtshRogueCertCollector(Collector):
 
     name = "crtsh_certs"
+    enabled_by_default = False
 
     DEFAULT_DOMAINS = ["abuse.ch", "urlhaus.abuse.ch"]
 

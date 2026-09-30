@@ -13,7 +13,7 @@ from .base import Collector
 
 class PublicPasteDumpCollector(Collector):
     name = "paste_dumps"
-    enabled_by_default = True
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         urls = self.cfg.get("dump_urls", [])   # daily tarball mirrors
@@ -59,19 +59,40 @@ class PublicPasteDumpCollector(Collector):
 class RentrySearchCollector(Collector):
 
     name = "rentry_search"
-    enabled_by_default = True
+    enabled_by_default = False
 
     RE_LINK = re.compile(r'href="(/([A-Za-z0-9]{6,8}))"')
 
     def collect(self) -> Iterable[IntelItem]:
         terms = self.cfg.get("watch_terms", []) or ["breach", "combo", "stealer", "db"]
         for t in terms:
-            url = f"https://rentry.co/search/?q={t.replace(' ', '+')}"
+            url = f"https://rentry.co/api/search/?q={t.replace(' ', '+')}"
             resp = self.http.get(url)
             if not resp.ok:
-                continue
-            for m in self.RE_LINK.finditer(resp.body):
-                slug = m.group(2)
+                url = f"https://rentry.co/search/?q={t.replace(' ', '+')}"
+                resp = self.http.get(url)
+                if not resp.ok:
+                    continue
+                hits = [{"code": m.group(2), "title": ""}
+                        for m in self.RE_LINK.finditer(resp.body)]
+            else:
+                try:
+                    data = resp.json()
+                except Exception:
+                    continue
+                rows = data if isinstance(data, list) else data.get("results", [])
+                hits = []
+                for r in rows:
+                    code = (r.get("code") or r.get("url") or "").strip("/")
+                    if code:
+                        hits.append({"code": code.split("/")[-1],
+                                     "title": str(r.get("name") or "")[:300]})
+            seen_slugs: set[str] = set()
+            for h in hits:
+                slug = h["code"]
+                if slug in seen_slugs:
+                    continue
+                seen_slugs.add(slug)
                 raw_url = f"https://rentry.co/{slug}/raw"
                 pr = self.http.get(raw_url)
                 if not pr.ok:
@@ -81,4 +102,5 @@ class RentrySearchCollector(Collector):
                     category="paste", value=safe.text, source=self.name,
                     source_ref=raw_url, confidence=0.5, tlp="CLEAR",
                     tags=["rentry", f"search:{t}"],
-                    attributes={"redaction_hits": safe.hits}, redacted=safe.changed)
+                    attributes={"title_hint": h["title"],
+                                "redaction_hits": safe.hits}, redacted=safe.changed)
