@@ -2,9 +2,19 @@
 <a class="event b-{{ bucket_of(it.category) }}" href="/item/{{ it.id }}">
   <span class="time mono">{{ (it.collected_at or '')[11:19] }}</span>
   <span class="badge">{{ it.category }}</span>
-  <span class="val mono">{{ it.value[:160] }}</span>
+  <span class="val mono" title="{{ it.value }}">{{ it.value[:220] }}</span>
   {% for t in (it.tags or [])[:3] %}<span class="tagchip">{{ t }}</span>{% endfor %}
   {% if it.redacted %}<span class="redact-flag">redacted</span>{% endif %}
-  <span class="src">{{ it.source }}</span>
+  <span class="src">{{ it.source.split(':')[0] }}</span>
 </a>
+{% endmacro %}
+
+{% macro pager(base, page, pages, args) %}
+{% if pages > 1 %}
+<div class="pager">
+  {% if page > 1 %}<a class="btn-ghost" href="{{ base }}?{{ args }}&page={{ page - 1 }}">PREV</a>{% endif %}
+  <span class="muted small mono">page {{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn-ghost" href="{{ base }}?{{ args }}&page={{ page + 1 }}">NEXT</a>{% endif %}
+</div>
+{% endif %}
 {% endmacro %}

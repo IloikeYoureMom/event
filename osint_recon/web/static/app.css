@@ -270,3 +270,71 @@ a { color: var(--ioc); }
   text-align: center; color: var(--muted); padding: 40px 0; font-size: 13px;
   border: 1px dashed var(--line); border-radius: 8px;
 }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 22px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .brand { margin-right: 6px; text-decoration: none; color: var(--text); }
+.topbar .nav { flex-direction: row; gap: 4px; }
+.topsearch { flex: 1; max-width: 520px; }
+.topsearch input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+}
+.topsearch input:focus { border-color: var(--accent); }
+.jobbox { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.page { padding: 24px 30px; max-width: 1500px; margin: 0 auto; width: 100%; }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+a.dist-row { text-decoration: none; color: var(--text); }
+a.dist-row:hover .dist-label { color: var(--accent); }
+.more { float: right; font-size: 11px; text-transform: none; letter-spacing: 0; }
+.pager { display: flex; align-items: center; gap: 14px; justify-content: center; margin-top: 16px; }
+.pager a { text-decoration: none; }
+.runbar { margin-bottom: 16px; }
+.runbar select {
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; min-width: 280px;
+}
+.badge.b-ioc { color: var(--ioc); border-color: rgba(76,194,255,.35); background: rgba(76,194,255,.08); }
+.badge.b-leak, .badge.b-ransom, .badge.b-secret, .badge.b-stealer { color: var(--leak); border-color: rgba(255,93,93,.35); background: rgba(255,93,93,.08); }
+.badge.b-actor { color: var(--actor); border-color: rgba(179,136,255,.35); background: rgba(179,136,255,.08); }
+.badge.b-report, .badge.b-threat { color: var(--report); border-color: rgba(255,209,102,.35); background: rgba(255,209,102,.08); }
+.badge.b-chat, .badge.b-forum { color: var(--chat); border-color: rgba(110,231,183,.35); background: rgba(110,231,183,.08); }
+.badge.b-paste { color: var(--paste); border-color: rgba(244,114,182,.35); background: rgba(244,114,182,.08); }
+.badge.b-github { color: var(--github); border-color: rgba(154,164,178,.35); background: rgba(154,164,178,.08); }
+.badge.b-doc, .badge.b-device { color: var(--ioc); border-color: rgba(76,194,255,.35); background: rgba(76,194,255,.08); }
+.btxt-ioc { color: var(--ioc); }
+.btxt-leak, .btxt-ransom, .btxt-secret, .btxt-stealer { color: var(--leak); }
+.btxt-actor { color: var(--actor); }
+.btxt-report, .btxt-threat { color: var(--report); }
+.btxt-chat, .btxt-forum { color: var(--chat); }
+.btxt-paste { color: var(--paste); }
+.btxt-github { color: var(--github); }
+.btxt-doc, .btxt-device { color: var(--ioc); }
+.breakable { word-break: break-all; }
+.dist-fill { background: var(--accent); }
+.dist-fill.b-ioc { background: var(--ioc); }
+.dist-fill.b-leak, .dist-fill.b-ransom, .dist-fill.b-secret { background: var(--leak); }
+.dist-fill.b-actor { background: var(--actor); }
+.dist-fill.b-report, .dist-fill.b-threat { background: var(--report); }
+.dist-fill.b-chat, .dist-fill.b-forum { background: var(--chat); }
+.dist-fill.b-paste { background: var(--paste); }
+@media (max-width: 900px) {
+  .cols2 { grid-template-columns: 1fr; }
+  .topbar { flex-wrap: wrap; }
+  .page { padding: 16px; }
+}

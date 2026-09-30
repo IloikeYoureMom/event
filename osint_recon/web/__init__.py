@@ -9,58 +9,48 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, render_template, request
 
+from .index import get_index
+
 RUNS_DIR = Path("data/runs")
 STATE_DIR = Path("data/state")
 
 
-def _iter_items(run: str | None = None):
-    if run:
-        dirs = [RUNS_DIR / run]
-    else:
-        dirs = sorted(RUNS_DIR.iterdir(), reverse=True) if RUNS_DIR.exists() else []
-    for d in dirs:
-        jl = d / "items.jsonl"
-        if not jl.exists():
-            continue
-        with jl.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    yield d.name, json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+def _idx():
+    idx = get_index(RUNS_DIR)
+    idx.maybe_refresh()
+    return idx
+
+
+def _matches(it: dict, category: str, source: str, run: str, bucket: str) -> bool:
+    if category and it.get("category") != category:
+        return False
+    if source and not str(it.get("source", "")).startswith(source):
+        return False
+    if run and it.get("_run") != run:
+        return False
+    if bucket and _bucket_of(it.get("category", "")) != bucket:
+        return False
+    return True
 
 
 def list_runs() -> list[dict]:
     out = []
     if not RUNS_DIR.exists():
         return out
+    by_run: dict[str, Counter] = defaultdict(Counter)
+    redacted_by_run: Counter = Counter()
+    for it in _idx().snapshot()[0]:
+        r = it.get("_run", "")
+        by_run[r][it.get("category", "?")] += 1
+        if it.get("redacted"):
+            redacted_by_run[r] += 1
     for d in sorted(RUNS_DIR.iterdir(), reverse=True):
-        jl = d / "items.jsonl"
-        n = 0
-        cats: Counter = Counter()
-        redacted = 0
-        if jl.exists():
-            with jl.open() as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        it = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    n += 1
-                    cats[it.get("category", "?")] += 1
-                    if it.get("redacted"):
-                        redacted += 1
+        cats = by_run.get(d.name, Counter())
         out.append({
             "run": d.name,
-            "items": n,
+            "items": sum(cats.values()),
             "categories": len(cats),
-            "redacted": redacted,
+            "redacted": redacted_by_run.get(d.name, 0),
             "has_summary": (d / "summary.md").exists(),
         })
     return out
@@ -73,11 +63,13 @@ def stats(run: str | None = None) -> dict:
     timeline: dict[str, Counter] = defaultdict(Counter)
     total = 0
     redacted = 0
-    for run_name, it in _iter_items(run):
+    for it in _idx().snapshot()[0]:
+        if run and it.get("_run") != run:
+            continue
         total += 1
         cat = it.get("category", "?")
-        src = it.get("source", "?").split(":")[0]
-        bucket = cat.split("_")[0] if "_" in cat else cat
+        src = str(it.get("source", "?")).split(":")[0]
+        bucket = _bucket_of(cat)
         by_cat[cat] += 1
         by_src[src] += 1
         by_bucket[bucket] += 1
@@ -92,33 +84,22 @@ def stats(run: str | None = None) -> dict:
         "by_category": by_cat.most_common(),
         "by_source": by_src.most_common(),
         "by_bucket": by_bucket.most_common(),
-        "timeline": [{"hour": h, **dict(c)} for h, c in sorted(timeline.items())],
+        "timeline": [{"hour": h, **dict(c)} for h, c in sorted(timeline.items())][-48:],
     }
 
 
 def search_items(q: str = "", category: str = "", source: str = "",
-                 run: str = "", limit: int = 200) -> list[dict]:
-    ql = q.lower()
-    results = []
-    for run_name, it in _iter_items(run or None):
-        if category and it.get("category") != category:
-            continue
-        if source and not it.get("source", "").startswith(source):
-            continue
-        if ql:
-            hay = " ".join([
-                str(it.get("value", "")),
-                str(it.get("source", "")),
-                " ".join(it.get("tags", [])),
-                json.dumps(it.get("attributes", {}), default=str),
-            ]).lower()
-            if ql not in hay:
-                continue
-        it["_run"] = run_name
-        results.append(it)
-        if len(results) >= limit:
-            break
-    return results
+                 run: str = "", bucket: str = "", page: int = 1,
+                 limit: int = 200) -> tuple[list[dict], int]:
+    terms = [t for t in q.lower().split() if t]
+    if terms:
+        pool = _idx().query(terms, limit=max(page * limit + limit, 1500))
+    else:
+        pool = _idx().snapshot()[0]
+    matched = [it for it in pool if _matches(it, category, source, run, bucket)]
+    total = len(matched)
+    start = max((page - 1) * limit, 0)
+    return matched[start:start + limit], total
 
 
 class RunJob:
@@ -190,37 +171,45 @@ _jobs: dict[str, RunJob] = {}
 _jobs_lock = threading.Lock()
 
 
+def _bucket_of(category: str) -> str:
+    head = (category or "").split("_")[0].split(" ")[0]
+    known = {"ioc", "leak", "leaked", "actor", "report", "threat", "chat",
+             "forum", "paste", "github", "doc", "ransom", "device",
+             "infected", "stealer", "secret", "exposed"}
+    if head == "exposed":
+        return "secret"
+    return head if head in known else "github"
+
+
 def create_app(data_dir: Path | None = None) -> Flask:
     global RUNS_DIR, STATE_DIR
     if data_dir:
         RUNS_DIR = data_dir / "runs"
         STATE_DIR = data_dir / "state"
     app = Flask(__name__)
+    app.config["JSON_SORT_KEYS"] = False
+    _idx()
 
-    def bucket_of(category: str) -> str:
-        head = (category or "").split("_")[0].split(" ")[0]
-        known = {"ioc", "leak", "leaked", "actor", "report", "threat", "chat",
-                 "forum", "paste", "github", "doc", "ransom", "device",
-                 "infected", "stealer", "secret"}
-        return head if head in known else "github"
-
-    app.jinja_env.globals["bucket_of"] = bucket_of
+    app.jinja_env.globals["bucket_of"] = _bucket_of
 
     @app.context_processor
     def inject_globals():
         return {
             "runs": list_runs(),
             "selected": request.view_args.get("run", "") if request.view_args else "",
+            "args": request.args,
         }
 
     @app.route("/")
     def home():
         runs = list_runs()
         latest = runs[0]["run"] if runs else ""
-        st = stats(latest or None)
-        recent = search_items(run=latest, limit=40) if latest else []
-        return render_template("index.html", runs=runs, selected=latest,
-                               stats=st, items=recent, active="events")
+        st = stats(None)
+        recent, total_all = search_items(limit=60)
+        fresh, _ = search_items(run=latest, limit=40) if latest else ([], 0)
+        return render_template("index.html", runs=runs, selected="",
+                               stats=st, items=fresh or recent,
+                               total_all=total_all, active="events")
 
     @app.route("/events")
     @app.route("/events/<run>")
@@ -229,21 +218,26 @@ def create_app(data_dir: Path | None = None) -> Flask:
         if run and not any(r["run"] == run for r in runs):
             abort(404)
         st = stats(run or None)
-        items = search_items(run=run, limit=200)
+        page = max(int(request.args.get("page", 1) or 1), 1)
+        per = 200
+        items, total = search_items(run=run, page=page, limit=per)
+        pages = max((total + per - 1) // per, 1)
         return render_template("events.html", runs=runs, selected=run,
-                               stats=st, items=items, active="events")
+                               stats=st, items=items, total=total,
+                               page=page, pages=pages, active="events")
 
     @app.route("/item/<item_id>")
     def item_detail(item_id: str):
         found = None
-        for run_name, it in _iter_items():
-            if it.get("id") == item_id:
-                it["_run"] = run_name
+        for it in _idx().snapshot()[0]:
+            if it.get("id") == item_id or it.get("raw_hash") == item_id:
                 found = it
                 break
         if not found:
             abort(404)
-        return render_template("item.html", item=found, active="events")
+        related = search_items(q=str(found.get("value", "")), limit=25)[0][:25]
+        return render_template("item.html", item=found, related=related,
+                               active="events")
 
     @app.route("/sources")
     def sources():
@@ -275,14 +269,21 @@ def create_app(data_dir: Path | None = None) -> Flask:
         category = request.args.get("category", "").strip()
         source = request.args.get("source", "").strip()
         run = request.args.get("run", "").strip()
-        items = search_items(q=q, category=category, source=source,
-                             run=run, limit=300) if (q or category or source) else []
+        bucket = request.args.get("bucket", "").strip()
+        page = max(int(request.args.get("page", 1) or 1), 1)
+        per = 200
+        items, total = ([], 0)
+        if q or category or source or run or bucket:
+            items, total = search_items(q=q, category=category, source=source,
+                                        run=run, bucket=bucket, page=page, limit=per)
         st = stats()
+        pages = max((total + per - 1) // per, 1)
         return render_template("search.html", q=q, category=category,
-                               source=source, run=run, items=items,
+                               source=source, run=run, bucket=bucket,
+                               items=items, total=total, page=page, pages=pages,
                                categories=[c for c, _ in st["by_category"]],
                                sources_list=[s for s, _ in st["by_source"]],
-                               active="search")
+                               buckets=st["by_bucket"], active="search")
 
     @app.route("/api/stats")
     def api_stats():
@@ -290,13 +291,16 @@ def create_app(data_dir: Path | None = None) -> Flask:
 
     @app.route("/api/items")
     def api_items():
-        return jsonify(search_items(
+        items, total = search_items(
             q=request.args.get("q", ""),
             category=request.args.get("category", ""),
             source=request.args.get("source", ""),
             run=request.args.get("run", ""),
-            limit=min(int(request.args.get("limit", 200)), 5000),
-        ))
+            bucket=request.args.get("bucket", ""),
+            page=int(request.args.get("page", 1) or 1),
+            limit=min(int(request.args.get("limit", 200)), 2000),
+        )
+        return jsonify({"total": total, "items": items})
 
     @app.route("/api/runs")
     def api_runs():

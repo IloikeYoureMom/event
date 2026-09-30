@@ -4,11 +4,15 @@
 {% block content %}
 <div class="page-head">
   <h1>Search</h1>
-  <div class="sub">query collected intel across all runs</div>
+  <div class="sub">{{ total }} match{{ '' if total == 1 else 'es' }}{% if q %} for <span class="mono">{{ q }}</span>{% endif %}</div>
 </div>
 
 <form class="filters" method="get" action="/search">
   <input type="text" name="q" placeholder="free text: value, tag, attribute..." value="{{ q }}">
+  <select name="bucket">
+    <option value="">all buckets</option>
+    {% for b, n in buckets %}<option value="{{ b }}" {{ 'selected' if b == bucket }}>{{ b }} ({{ n }})</option>{% endfor %}
+  </select>
   <select name="category">
     <option value="">all categories</option>
     {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == category }}>{{ c }}</option>{% endfor %}
@@ -22,11 +26,17 @@
 </form>
 
 <div class="panel">
-  <h2>{{ items | length }} result{{ '' if items | length == 1 else 's' }}</h2>
+  <h2>{{ items | length }} shown of {{ total }}</h2>
   <div class="events">
     {% for it in items %}{{ m.event_row(it) }}{% endfor %}
-    {% if q or category or source %}{% if not items %}<div class="empty">no matches</div>{% endif %}{% else %}
+    {% if q or category or source or run or bucket %}{% if not items %}<div class="empty">no matches - try a broader term like a domain, ip, tag or hash fragment</div>{% endif %}{% else %}
     <div class="empty">enter a query or pick filters above</div>{% endif %}
   </div>
+  {% set qs = ('q=' + q) if q else '' %}
+  {% if category %}{% set qs = qs + '&category=' + category %}{% endif %}
+  {% if source %}{% set qs = qs + '&source=' + source %}{% endif %}
+  {% if bucket %}{% set qs = qs + '&bucket=' + bucket %}{% endif %}
+  {% if run %}{% set qs = qs + '&run=' + run %}{% endif %}
+  {{ m.pager('/search', page, pages, qs) }}
 </div>
 {% endblock %}

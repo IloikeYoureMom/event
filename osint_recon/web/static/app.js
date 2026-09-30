@@ -19,6 +19,7 @@ const BUCKET_COLORS = {
 
 function bucketOf(category) {
   const head = (category || "").split("_")[0].split(" ")[0];
+  if (head === "exposed") return "secret";
   return BUCKET_COLORS[head] ? head : "github";
 }
 
@@ -58,29 +59,21 @@ function renderTimeline(el, timeline) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const tl = document.getElementById("timeline");
-  if (tl && tl.dataset.payload) {
-    try { renderTimeline(tl, JSON.parse(tl.dataset.payload)); } catch (e) {}
-  }
-
-  const btn = document.getElementById("trigger-btn");
-  if (btn) {
-    const status = document.getElementById("trigger-status");
-    const onlyInp = document.getElementById("trigger-only");
-    let poll = null;
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      status.textContent = "starting...";
-      try {
-        const res = await fetch("/api/trigger", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ only: onlyInp.value.trim() }),
-        });
-        await res.json();
-        status.textContent = "running collectors...";
-        poll = setInterval(async () => {
+function wireTrigger(btn, status) {
+  let poll = null;
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    status.textContent = "starting...";
+    try {
+      const res = await fetch("/api/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ only: "" }),
+      });
+      await res.json();
+      status.textContent = "running collectors...";
+      poll = setInterval(async () => {
+        try {
           const jr = await fetch("/api/jobs");
           const jobs = await jr.json();
           const latest = jobs[jobs.length - 1];
@@ -99,11 +92,37 @@ document.addEventListener("DOMContentLoaded", () => {
             status.textContent = "running (" +
               Math.round(latest.duration) + "s)...";
           }
-        }, 3000);
-      } catch (err) {
-        btn.disabled = false;
-        status.textContent = "trigger error: " + err;
-      }
-    });
+        } catch (e) {}
+      }, 3000);
+    } catch (err) {
+      btn.disabled = false;
+      status.textContent = "trigger error: " + err;
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const tl = document.getElementById("timeline");
+  if (tl && tl.dataset.payload) {
+    try { renderTimeline(tl, JSON.parse(tl.dataset.payload)); } catch (e) {}
+  }
+
+  const btn = document.getElementById("trigger-btn");
+  const status = document.getElementById("trigger-status");
+  if (btn && status) wireTrigger(btn, status);
+
+  const lastRun = document.getElementById("last-run");
+  if (lastRun && lastRun.value) {
+    let seen = lastRun.value;
+    setInterval(async () => {
+      try {
+        const r = await fetch("/api/runs");
+        const runs = await r.json();
+        if (runs.length && runs[0].run !== seen) {
+          seen = runs[0].run;
+          location.reload();
+        }
+      } catch (e) {}
+    }, 10000);
   }
 });
