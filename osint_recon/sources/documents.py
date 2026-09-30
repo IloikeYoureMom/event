@@ -10,7 +10,7 @@ from .base import Collector, RE_URL, iocs_from_text
 
 class DocLinkHarvester(Collector):
     name = "doc_links"
-    enabled_by_default = True
+    enabled_by_default = False
 
     DEFAULT_SEEDS = [
         "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",

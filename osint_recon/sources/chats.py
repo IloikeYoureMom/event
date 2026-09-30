@@ -13,7 +13,7 @@ from .base import Collector, iocs_from_text
 class TelegramCollector(Collector):
 
     name = "telegram"
-    enabled_by_default = True
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         try:
@@ -24,7 +24,7 @@ class TelegramCollector(Collector):
         api_id = os.getenv("TG_API_ID") or self.cfg.get("api_id", "")
         api_hash = os.getenv("TG_API_HASH") or self.cfg.get("api_hash", "")
         if not (api_id and api_hash):
-            self.log.info("telegram: set $TG_API_ID/$TG_API_HASH (my.telegram.org)")
+            self.log.info("telegram requires external API credentials; skipped in no-api mode")
             return
         channels = self.cfg.get("channels", [])       # e.g. ["no_breach_official"]
         keywords = [k.lower() for k in self.cfg.get("keywords", ["breach", "stealer", "db", "combo"])]
@@ -74,7 +74,7 @@ class TelegramCollector(Collector):
 class DiscordCollector(Collector):
 
     name = "discord"
-    enabled_by_default = True
+    enabled_by_default = False
 
     def collect(self) -> Iterable[IntelItem]:
         try:

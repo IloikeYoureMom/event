@@ -172,7 +172,10 @@ _jobs_lock = threading.Lock()
 
 
 def _bucket_of(category: str) -> str:
-    head = (category or "").split("_")[0].split(" ")[0]
+    cat = category or ""
+    if cat.startswith("threat_hunter"):
+        return "hunter"
+    head = cat.split("_")[0].split(" ")[0]
     known = {"ioc", "leak", "leaked", "actor", "report", "threat", "chat",
              "forum", "paste", "github", "doc", "ransom", "device",
              "infected", "stealer", "secret", "exposed"}
