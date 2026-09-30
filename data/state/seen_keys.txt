@@ -35808,6 +35808,7 @@ ioc_url:https://zetaval.metcalfphoto.com/update.sh
 ioc_url:https://zhostz.com/work/invitation_viewer.vbs
 ioc_url:https://zunimar.cl/img/img_212234.png
 ransom_leak:AHEAD :: incransom
+ransom_leak:AHeadStart Tutoring :: Gammax
 ransom_leak:ATCO Ltd :: medusalocker
 ransom_leak:All Tech Machine & Engineering :: qilin
 ransom_leak:Amazon Informatica :: emperador
@@ -35823,6 +35824,7 @@ ransom_leak:Car Service Abschlepp :: emperador
 ransom_leak:Catholic University of El Salvador :: Wallstreet
 ransom_leak:Chem Process Systems Pvt. Ltd. :: Doommageddon
 ransom_leak:Crossett :: termite
+ransom_leak:Crowder Industries, Inc :: Gammax
 ransom_leak:Dao Group :: qilin
 ransom_leak:Dediserve Ltd :: N0n
 ransom_leak:ETS :: everest
@@ -35834,7 +35836,9 @@ ransom_leak:First Secure Bank Group :: Storm
 ransom_leak:GE Vernova Inc. :: metaencryptor
 ransom_leak:GTFM :: Wallstreet
 ransom_leak:Geebee Garments :: akira
+ransom_leak:Gibson Area Hospital & Health Services :: Wallstreet
 ransom_leak:Goodrich Logistics :: Doommageddon
+ransom_leak:Groupe Proxitel :: Vexy Ransomware
 ransom_leak:Holiday Inn Vilnius :: safepay
 ransom_leak:Iberia Compositech Manufacturing :: qilin
 ransom_leak:International Chemical Co. :: Barracuda
@@ -35854,8 +35858,10 @@ ransom_leak:New World Diagnostics :: qilin
 ransom_leak:Nissho Electric Manufacturing Co., Ltd. :: qilin
 ransom_leak:PKF Hadiwinata :: metaencryptor
 ransom_leak:PKSF — Palli Karma-Sahayak Foundation :: medusalocker
+ransom_leak:Paid Victim 32373FFB7AF7E725 :: AuditTeam
 ransom_leak:Pantaneiro Capas :: arcusmedia
 ransom_leak:Platinum Healthcare Staffing :: metaencryptor
+ransom_leak:Polikem :: emperador
 ransom_leak:Prater & Ridley Attorneys At Law :: Wallstreet
 ransom_leak:Precision Facades Ltd :: N0n
 ransom_leak:Premiumfruits :: medusalocker
@@ -35870,15 +35876,19 @@ ransom_leak:Securitas Group :: everest
 ransom_leak:SiteProRentals :: emperador
 ransom_leak:Starr Whitehouse Landscape Architects :: play
 ransom_leak:TapClicks (marketing analytics platform) :: N0n
+ransom_leak:Tekko Enterprises, Inc :: interlock
 ransom_leak:The Center for Kidney Care :: interlock
 ransom_leak:Tobin & Company :: Wallstreet
 ransom_leak:UNIRITA :: everest
+ransom_leak:Unique Repair Services :: kairos
 ransom_leak:Willatt & Flickinger :: qilin
 ransom_leak:XICO :: qilin
 ransom_leak:Zig Inge Group :: qilin
+ransom_leak:advantech.com :: chaos
 ransom_leak:apexus.com :: threeam
 ransom_leak:auromex.com :: safepay
 ransom_leak:bakemyday.se :: incransom
+ransom_leak:bcx.co.za :: incransom
 ransom_leak:bhn-expertise.com :: threeam
 ransom_leak:bio-strath.com :: safepay
 ransom_leak:bnlawmacau.com www.bn-ip.com :: incransom
@@ -35892,19 +35902,29 @@ ransom_leak:cromados.com :: safepay
 ransom_leak:eagroep.com :: safepay
 ransom_leak:efada.sa :: krybit
 ransom_leak:fedelmundo.com.ph :: safepay
+ransom_leak:goriteway.com :: BrainCipher
 ransom_leak:iccsi.com :: m3rx
+ransom_leak:intense.pl :: m3rx
+ransom_leak:latitudesubro.com :: BrainCipher
 ransom_leak:lfgholding.com :: safepay
 ransom_leak:manno.ch :: safepay
+ransom_leak:maxwell-group.com :: BrainCipher
+ransom_leak:mccordclaims.com :: BrainCipher
 ransom_leak:midwestbit.com :: threeam
+ransom_leak:mulholland.com :: BrainCipher
 ransom_leak:noonsugar.com :: m3rx
+ransom_leak:northeastrehab.com :: BrainCipher
 ransom_leak:nsbsd.org :: incransom
 ransom_leak:oterolaw.com :: m3rx
 ransom_leak:pharma5.ma :: incransom
 ransom_leak:pistonespersan.com.ar :: threeam
 ransom_leak:safescaffolding.net :: threeam
 ransom_leak:somasolucoes.com :: m3rx
+ransom_leak:spg.co.kr :: lockbit5
 ransom_leak:stjames.wa.edu.au :: threeam
 ransom_leak:sumperk.cz :: safepay
+ransom_leak:trailerbridge.com :: BrainCipher
 ransom_leak:ukbjja.org :: incransom
 ransom_leak:welgenone.com :: incransom
+ransom_leak:wildmanbg.com :: BrainCipher
 sec_8k_item105:Astrana Health, Inc.: 8-K Item 1.05 disclosure
