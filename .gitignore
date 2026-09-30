@@ -1,6 +1,7 @@
-# Python cache and compiled files
+# Python cache
 __pycache__/
 *.pyc
 
-# Generated data/cache/runs directories (binary/meta artifacts)
-data/cache/
+# Generated data runs and state
+data/runs/
+data/state/

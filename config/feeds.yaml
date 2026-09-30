@@ -44,6 +44,14 @@ sources:
     enabled: true
     repos: [digitalside/threat-actor]
 
+  github_secrets:
+    enabled: true
+    use_code_search: false
+    max_repos: 25
+    max_files_per_repo: 40
+    queries: []
+    repos: []
+
   crtsh_certs:
     enabled: true
     domains: []
