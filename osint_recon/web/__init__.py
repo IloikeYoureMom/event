@@ -9,7 +9,10 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, render_template, request
 
+import re
+
 from .index import get_index
+from osint_recon.models import entity_type, normalise_value
 
 RUNS_DIR = Path("data/runs")
 STATE_DIR = Path("data/state")
@@ -90,16 +93,17 @@ def stats(run: str | None = None) -> dict:
 
 def search_items(q: str = "", category: str = "", source: str = "",
                  run: str = "", bucket: str = "", page: int = 1,
-                 limit: int = 200) -> tuple[list[dict], int]:
+                 limit: int = 200) -> tuple[list[dict], int, dict]:
     terms = [t for t in q.lower().split() if t]
+    meta = {"suggestions": []}
     if terms:
-        pool = _idx().query(terms, limit=max(page * limit + limit, 1500))
+        pool, meta = _idx().query(terms, limit=max(page * limit + limit, 1500))
     else:
         pool = _idx().snapshot()[0]
     matched = [it for it in pool if _matches(it, category, source, run, bucket)]
     total = len(matched)
     start = max((page - 1) * limit, 0)
-    return matched[start:start + limit], total
+    return matched[start:start + limit], total, meta
 
 
 class RunJob:
@@ -208,8 +212,8 @@ def create_app(data_dir: Path | None = None) -> Flask:
         runs = list_runs()
         latest = runs[0]["run"] if runs else ""
         st = stats(None)
-        recent, total_all = search_items(limit=60)
-        fresh, _ = search_items(run=latest, limit=40) if latest else ([], 0)
+        recent, total_all, _ = search_items(limit=60)
+        fresh, _, _ = search_items(run=latest, limit=40) if latest else ([], 0, {})
         return render_template("index.html", runs=runs, selected="",
                                stats=st, items=fresh or recent,
                                total_all=total_all, active="events")
@@ -223,7 +227,7 @@ def create_app(data_dir: Path | None = None) -> Flask:
         st = stats(run or None)
         page = max(int(request.args.get("page", 1) or 1), 1)
         per = 200
-        items, total = search_items(run=run, page=page, limit=per)
+        items, total, _meta = search_items(run=run, page=page, limit=per)
         pages = max((total + per - 1) // per, 1)
         return render_template("events.html", runs=runs, selected=run,
                                stats=st, items=items, total=total,
@@ -231,15 +235,16 @@ def create_app(data_dir: Path | None = None) -> Flask:
 
     @app.route("/item/<item_id>")
     def item_detail(item_id: str):
-        found = None
-        for it in _idx().snapshot()[0]:
-            if it.get("id") == item_id or it.get("raw_hash") == item_id:
-                found = it
-                break
+        found = _idx().lookup_item(item_id)
         if not found:
             abort(404)
-        related = search_items(q=str(found.get("value", "")), limit=25)[0][:25]
+        canon = found.get("_canon", "")
+        group = _idx().canon_group(canon)[:50] if canon else []
+        related = group if len(group) > 1 else search_items(
+            q=str(found.get("value", "")), limit=25)[0][:25]
+        sources_count = len({g.get("source", "").split(":")[0] for g in group}) or 1
         return render_template("item.html", item=found, related=related,
+                               group=group, sources_count=sources_count,
                                active="events")
 
     @app.route("/sources")
@@ -275,18 +280,40 @@ def create_app(data_dir: Path | None = None) -> Flask:
         bucket = request.args.get("bucket", "").strip()
         page = max(int(request.args.get("page", 1) or 1), 1)
         per = 200
-        items, total = ([], 0)
+        items, total, meta = ([], 0, {"suggestions": []})
         if q or category or source or run or bucket:
-            items, total = search_items(q=q, category=category, source=source,
-                                        run=run, bucket=bucket, page=page, limit=per)
+            items, total, meta = search_items(q=q, category=category, source=source,
+                                              run=run, bucket=bucket, page=page, limit=per)
         st = stats()
         pages = max((total + per - 1) // per, 1)
         return render_template("search.html", q=q, category=category,
                                source=source, run=run, bucket=bucket,
                                items=items, total=total, page=page, pages=pages,
+                               suggestions=meta.get("suggestions", []),
                                categories=[c for c, _ in st["by_category"]],
                                sources_list=[s for s, _ in st["by_source"]],
                                buckets=st["by_bucket"], active="search")
+
+    @app.route("/ioc/<path:value>")
+    def ioc_view(value: str):
+        value = value.strip()
+        ent = entity_type(normalise_value("ioc_url", value))
+        if ent is None:
+            abort(404)
+        host_m = re.match(r"^(?:https?://)?([\w.-]+)", value)
+        if ent == "domain" and host_m:
+            ck = f"ioc_domain:{host_m.group(1).lower().removeprefix('www.')}"
+        else:
+            ck = f"ioc_{ent}:{value.lower()}"
+        group = _idx().canon_group(ck)[:200]
+        if not group:
+            abort(404)
+        head = group[0]
+        related = group[1:] if len(group) > 1 else []
+        sources_count = len({g.get("source", "").split(":")[0] for g in group})
+        return render_template("item.html", item=head, related=related,
+                               group=group, sources_count=sources_count,
+                               active="events")
 
     @app.route("/api/stats")
     def api_stats():
@@ -294,7 +321,7 @@ def create_app(data_dir: Path | None = None) -> Flask:
 
     @app.route("/api/items")
     def api_items():
-        items, total = search_items(
+        items, total, meta = search_items(
             q=request.args.get("q", ""),
             category=request.args.get("category", ""),
             source=request.args.get("source", ""),
@@ -303,7 +330,30 @@ def create_app(data_dir: Path | None = None) -> Flask:
             page=int(request.args.get("page", 1) or 1),
             limit=min(int(request.args.get("limit", 200)), 2000),
         )
-        return jsonify({"total": total, "items": items})
+        return jsonify({"total": total, "items": items,
+                        "suggestions": meta.get("suggestions", [])})
+
+    @app.route("/api/ioc/<path:value>")
+    def api_ioc(value: str):
+        value = value.strip()
+        ent = entity_type(normalise_value("ioc_url", value))
+        if ent is None:
+            return jsonify({"error": "not a recognisable ioc"}), 404
+        host_m = re.match(r"^(?:https?://)?([\w.-]+)", value)
+        if ent == "domain" and host_m:
+            ck = f"ioc_domain:{host_m.group(1).lower().removeprefix('www.')}"
+        else:
+            ck = f"ioc_{ent}:{value.lower()}"
+        group = _idx().canon_group(ck)[:500]
+        return jsonify({
+            "canon": ck,
+            "entity": ent,
+            "sources": sorted({g.get("source", "").split(":")[0] for g in group}),
+            "first_seen": min((g.get("collected_at") or "9999" for g in group), default=""),
+            "last_seen": max((g.get("collected_at") or "" for g in group), default=""),
+            "count": len(group),
+            "items": group,
+        })
 
     @app.route("/api/runs")
     def api_runs():
