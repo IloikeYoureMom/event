@@ -1,12 +1,22 @@
 {% macro event_row(it) %}
-<a class="event b-{{ bucket_of(it.category) }}" href="/item/{{ it.id }}">
+<a class="event b-{{ bucket_of(it.category) }}" href="{% if it._canon %}/ioc/{{ it.value }}{% else %}/item/{{ it.id }}{% endif %}">
   <span class="time mono">{{ (it.collected_at or '')[11:19] }}</span>
   <span class="badge">{{ it.category }}</span>
   <span class="val mono" title="{{ it.value }}">{{ it.value[:220] }}</span>
+  {% if it.sources_count and it.sources_count > 1 %}<span class="multi-src">x{{ it.sources_count }}</span>{% endif %}
   {% for t in (it.tags or [])[:3] %}<span class="tagchip">{{ t }}</span>{% endfor %}
   {% if it.redacted %}<span class="redact-flag">redacted</span>{% endif %}
   <span class="src">{{ it.source.split(':')[0] }}</span>
 </a>
+{% endmacro %}
+
+{% macro canon_row(it, sources_count) %}
+<div class="event b-{{ bucket_of(it.category) }}">
+  <span class="badge">{{ it._entity or it.category }}</span>
+  <span class="val mono">{{ it._canon.split(':', 1)[1] if it._canon else it.value[:220] }}</span>
+  <span class="multi-src">{{ sources_count }} source{{ '' if sources_count == 1 else 's' }}</span>
+  <a class="btn-ghost small" href="/ioc/{{ it._canon.split(':', 1)[1] if it._canon else it.value }}">OPEN</a>
+</div>
 {% endmacro %}
 
 {% macro pager(base, page, pages, args) %}

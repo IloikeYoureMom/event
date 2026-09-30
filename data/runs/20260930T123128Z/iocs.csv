@@ -1,0 +1,8 @@
+type,value,source,first_seen,tlp,confidence,tags,source_ref
+domain,contest.com,telegram_web:ioc,2026-09-30T12:31:41Z,CLEAR,0.5,from-chat,https://t.me/contest/461
+domain,t.me,telegram_web:ioc,2026-09-30T12:31:41Z,CLEAR,0.5,from-chat,https://t.me/contest/459
+domain,vx-underground.org,telegram_web:ioc,2026-09-30T12:31:31Z,CLEAR,0.5,from-chat,https://t.me/vxunderground/9456
+domain,youtube.com,telegram_web:ioc,2026-09-30T12:31:31Z,CLEAR,0.5,from-chat,https://t.me/vxunderground/9454
+url,https://studiominus.nl/ppg-september-incident/red_analysis.html,telegram_web:ioc,2026-09-30T12:31:31Z,CLEAR,0.5,from-chat,https://t.me/vxunderground/9458
+url,https://vx-underground.org/updates,telegram_web:ioc,2026-09-30T12:31:31Z,CLEAR,0.5,from-chat,https://t.me/vxunderground/9456
+url,https://www.youtube.com/@malwareforfun,telegram_web:ioc,2026-09-30T12:31:31Z,CLEAR,0.5,from-chat,https://t.me/vxunderground/9454

@@ -27,6 +27,12 @@
 
 <div class="panel">
   <h2>{{ items | length }} shown of {{ total }}</h2>
+  {% if suggestions %}
+  <div class="suggest-row">
+    <span class="muted small">did you mean:</span>
+    {% for s in suggestions %}<a class="tagchip" href="/search?q={{ s }}">{{ s }}</a>{% endfor %}
+  </div>
+  {% endif %}
   <div class="events">
     {% for it in items %}{{ m.event_row(it) }}{% endfor %}
     {% if q or category or source or run or bucket %}{% if not items %}<div class="empty">no matches - try a broader term like a domain, ip, tag or hash fragment</div>{% endif %}{% else %}

@@ -345,3 +345,35 @@ a.dist-row:hover .dist-label { color: var(--accent); }
 .b-hunter .badge { color: var(--hunter); border-color: rgba(125,211,252,.35); background: rgba(125,211,252,.08); }
 .btxt-hunter { color: var(--hunter); }
 .dist-fill.b-hunter { background: var(--hunter); }
+
+.multi-src {
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 1px 8px;
+  font-family: inherit;
+}
+
+.suggest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cross-note {
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 3px solid #38bdf8;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  color: #bae6fd;
+  font-size: 13px;
+}
+
+.btn-ghost.small {
+  padding: 2px 10px;
+  font-size: 11px;
+}

@@ -1,7 +1,2 @@
-# Python compiled files
 __pycache__/
 *.pyc
-
-# Cache and generated data directories
-data/cache/
-data/runs/
