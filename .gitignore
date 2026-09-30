@@ -1,1 +1,4 @@
-(empty)
+data/cache/
+data/runs/
+data/state/
+.env
