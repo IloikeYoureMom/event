@@ -11,19 +11,19 @@ from .base import Collector
 class MalwareBazaarBrandCollector(Collector):
 
     name = "malwarebazaar_brand"
-    enabled_by_default = False   # needs your watchlist configured
+    enabled_by_default = True
 
     API = "https://mb-api.abuse.ch/api/v1/"
 
     def collect(self) -> Iterable[IntelItem]:
-        needles = self.cfg.get("search_terms", [])
+        needles = self.cfg.get("search_terms", []) or ["stealer", "redline", "vidar"]
         if not needles:
             self.log.info("set sources.malwarebazaar_brand.search_terms to skip-noop")
             return
         for term in needles:
             payload = urllib.parse.urlencode({"query": "search_term", "search_term": term})
-            resp = self.http.post_form(self.API, payload) if hasattr(self.http, "post_form") \
-                else self._get_fallback(term)
+            resp = self.http.post_form(self.API, payload,
+                                       headers={"User-Agent": "curl/8.5.0"})
             if not resp or not resp.ok:
                 self.log.warning("MalwareBazaar lookup failed for %s", term)
                 continue
@@ -50,21 +50,21 @@ class MalwareBazaarBrandCollector(Collector):
                     },
                 )
 
-    def _get_fallback(self, term: str):
-        return None
 
 
 class CrtshRogueCertCollector(Collector):
 
     name = "crtsh_certs"
 
+    DEFAULT_DOMAINS = ["abuse.ch", "urlhaus.abuse.ch"]
+
     def collect(self) -> Iterable[IntelItem]:
-        domains = self.cfg.get("domains", [])
+        domains = self.cfg.get("domains", []) or self.DEFAULT_DOMAINS
         since = self.cfg.get("since_id", 0)     # crt.sh ids grow ~monotonically
         for d in domains:
             url = (f"https://crt.sh/?q=%25.{urllib.parse.quote(d, safe='')}"
                    f"&output=json&mincertid={since}")
-            resp = self.http.get(url)
+            resp = self.http.get(url, allow_robots_override=True)
             if not resp.ok:
                 self.log.warning("crt.sh failed for %s (%s)", d, resp.error or resp.status)
                 continue

@@ -13,7 +13,7 @@ from .base import Collector
 
 class PublicPasteDumpCollector(Collector):
     name = "paste_dumps"
-    enabled_by_default = False   # point at a mirror you're allowed to use
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         urls = self.cfg.get("dump_urls", [])   # daily tarball mirrors
@@ -59,12 +59,12 @@ class PublicPasteDumpCollector(Collector):
 class RentrySearchCollector(Collector):
 
     name = "rentry_search"
-    enabled_by_default = False
+    enabled_by_default = True
 
     RE_LINK = re.compile(r'href="(/([A-Za-z0-9]{6,8}))"')
 
     def collect(self) -> Iterable[IntelItem]:
-        terms = self.cfg.get("watch_terms", [])
+        terms = self.cfg.get("watch_terms", []) or ["breach", "combo", "stealer", "db"]
         for t in terms:
             url = f"https://rentry.co/search/?q={t.replace(' ', '+')}"
             resp = self.http.get(url)

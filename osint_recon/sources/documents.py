@@ -10,9 +10,15 @@ from .base import Collector, RE_URL, iocs_from_text
 
 class DocLinkHarvester(Collector):
     name = "doc_links"
+    enabled_by_default = True
+
+    DEFAULT_SEEDS = [
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        "https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz",
+    ]
 
     def collect(self) -> Iterable[IntelItem]:
-        seeds: list[str] = self.cfg.get("seed_urls", [])
+        seeds: list[str] = list(self.cfg.get("seed_urls", [])) or self.DEFAULT_SEEDS
         max_docs = int(self.cfg.get("max_docs", 25))
         allowed_hosts = set(h.lower() for h in self.cfg.get("allowed_hosts", []))
         queue = deque(seeds)

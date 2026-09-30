@@ -12,7 +12,7 @@ from .base import Collector
 class HibpDomainCollector(Collector):
 
     name = "hibp_domain"
-    enabled_by_default = False   # needs paid/verified API key
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         api_key = self.cfg.get("api_key") or os.getenv("HIBP_API_KEY", "")
@@ -52,7 +52,7 @@ class HibpDomainCollector(Collector):
 class SecsgnTeaserCollector(Collector):
 
     name = "leak_teasers"
-    enabled_by_default = False  # point at a licensed vendor feed instead by default
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         url = self.cfg.get("url")
