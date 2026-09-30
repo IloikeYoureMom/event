@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}settings - osint recon{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Settings</h1>
+  <p class="muted">Paste free API keys and watchlists. Keys are stored in .env (chmod 600) and feed config goes to config/feeds.yaml. Leave a field empty to keep its current value.</p>
+</div>
+
+{% if msgs %}
+<div class="flash-box">
+  {% for m in msgs %}<div class="flash-line">{{ m }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="/settings" class="settings-form">
+
+  <section class="cfg-card">
+    <h2>Credential-backed sources</h2>
+    <div class="status-row">
+      {% for key, ok in status.items() %}
+      <span class="pill {{ 'ok' if ok else 'off' }}">{{ key }} {{ 'set' if ok else 'missing' }}</span>
+      {% endfor %}
+    </div>
+    <div class="field-grid">
+      <label>GitHub token (free classic/PAT, enables code search + higher rate limits)
+        <input type="password" name="github_token" placeholder="{{ env.get('GITHUB_TOKEN', 'ghp_...') }}" autocomplete="off">
+      </label>
+      <label>HIBP API key (free with your email at haveibeenpwned.com)
+        <input type="password" name="hibp_api_key" placeholder="{{ env.get('HIBP_API_KEY', 'paste key') }}" autocomplete="off">
+      </label>
+      <label>Telegram API ID (free at my.telegram.org)
+        <input type="password" name="tg_api_id" placeholder="{{ env.get('TG_API_ID', 'numeric id') }}" autocomplete="off">
+      </label>
+      <label>Telegram API hash (free at my.telegram.org)
+        <input type="password" name="tg_api_hash" placeholder="{{ env.get('TG_API_HASH', 'paste hash') }}" autocomplete="off">
+      </label>
+      <label>Discord bot token (free bot at discord.com/developers)
+        <input type="password" name="discord_bot_token" placeholder="{{ env.get('DISCORD_BOT_TOKEN', 'paste token') }}" autocomplete="off">
+      </label>
+      <label>Your domains for HIBP breach checks (one per line)
+        <textarea name="hibp_domains" rows="3" placeholder="example.com">{{ lists.hibp_domains | join('\n') }}</textarea>
+      </label>
+      <label>Your Telegram channels to read full history (one per line)
+        <textarea name="telegram_channels" rows="3" placeholder="no_breach_official">{{ lists.telegram_channels | join('\n') }}</textarea>
+      </label>
+      <label>Discord channel IDs you own/bot is in (one per line)
+        <textarea name="discord_channels" rows="3" placeholder="123456789012345678">{{ lists.discord_channels | join('\n') }}</textarea>
+      </label>
+    </div>
+  </section>
+
+  <section class="cfg-card">
+    <h2>Free / no-key sources</h2>
+    <div class="field-grid">
+      <label>Telegram public channels scraped via t.me/s (no key needed)
+        <textarea name="telegram_web_channels" rows="3">{{ lists.telegram_web_channels | join('\n') }}</textarea>
+      </label>
+      <label>Telegram keyword filter
+        <textarea name="telegram_keywords" rows="2">{{ lists.telegram_keywords | join('\n') }}</textarea>
+      </label>
+      <label>Discord invite codes (public metadata, no key needed)
+        <textarea name="discord_invite_codes" rows="3">{{ lists.discord_invite_codes | join('\n') }}</textarea>
+      </label>
+      <label>GitHub repos to scan for exposed secrets
+        <textarea name="github_secret_repos" rows="3" placeholder="owner/repo">{{ lists.github_secret_repos | join('\n') }}</textarea>
+      </label>
+      <label>GitHub code-search queries (needs GitHub token above)
+        <textarea name="github_search_queries" rows="3" placeholder="filename:.env org:someco">{{ lists.github_search_queries | join('\n') }}</textarea>
+      </label>
+      <label>crt.sh certificate domains
+        <textarea name="crtsh_domains" rows="3">{{ lists.crtsh_domains | join('\n') }}</textarea>
+      </label>
+      <label>Ransomware victim watchlist (company names)
+        <textarea name="ransom_watchlist" rows="3" placeholder="acme corp">{{ lists.ransom_watchlist | join('\n') }}</textarea>
+      </label>
+      <label>MalwareBazaar family search terms
+        <textarea name="malwarebazaar_terms" rows="3">{{ lists.malwarebazaar_terms | join('\n') }}</textarea>
+      </label>
+      <label>RSS report feeds (one URL per line)
+        <textarea name="rss_feeds" rows="4" placeholder="https://feed.url/rss">{{ lists.rss_feeds | join('\n') }}</textarea>
+      </label>
+      <label>STIX bundle URLs (one per line)
+        <textarea name="stix_urls" rows="3">{{ lists.stix_urls | join('\n') }}</textarea>
+      </label>
+      <label>Plain-text IOC feed URLs (one per line)
+        <textarea name="text_feed_urls" rows="4">{{ lists.text_feed_urls | join('\n') }}</textarea>
+      </label>
+      <label>Rentry search terms
+        <textarea name="rentry_terms" rows="2">{{ lists.rentry_terms | join('\n') }}</textarea>
+      </label>
+      <label>Document seed URLs for link mining
+        <textarea name="doc_seed_urls" rows="3">{{ lists.doc_seed_urls | join('\n') }}</textarea>
+      </label>
+      <label>Paste dump mirror URLs you are authorised to ingest
+        <textarea name="dump_urls" rows="3">{{ lists.dump_urls | join('\n') }}</textarea>
+      </label>
+      <label>Paste watch terms
+        <textarea name="paste_watch_terms" rows="2">{{ lists.paste_watch_terms | join('\n') }}</textarea>
+      </label>
+      <label>Forum base URLs (only sites you may access)
+        <textarea name="forum_sites" rows="3">{{ lists.forum_sites | join('\n') }}</textarea>
+      </label>
+      <label>Leak teaser endpoint URL
+        <input type="text" name="leak_teaser_url" value="{{ lists.leak_teaser_url }}" placeholder="https://...">
+      </label>
+      <label>Leak teaser bearer token
+        <input type="password" name="leak_teaser_token" placeholder="paste token" autocomplete="off">
+      </label>
+      <label>Global watch terms (brand / campaign keywords)
+        <textarea name="watch_terms" rows="3">{{ lists.watch_terms | join('\n') }}</textarea>
+      </label>
+    </div>
+    <div class="check-row">
+      <label class="check"><input type="checkbox" name="sec_8k_enabled" {{ 'checked' if flags.sec_8k_item105 }}> SEC 8-K Item 1.05 collector (EDGAR)</label>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <button type="submit" class="btn-run">SAVE SETTINGS</button>
+    <span class="muted small">saved values appear masked after refresh; press RUN afterwards to collect with the new config</span>
+  </div>
+</form>
+{% endblock %}

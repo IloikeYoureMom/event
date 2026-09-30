@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 import sys
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -44,6 +45,14 @@ ALL_COLLECTOR_CLASSES = [
 
 def load_config(path: str | Path) -> dict[str, Any]:
     import yaml
+    env_path = Path(".env")
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
     cfg = yaml.safe_load(Path(path).read_text()) or {}
     return cfg
 
