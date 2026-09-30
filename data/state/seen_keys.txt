@@ -26,6 +26,7 @@ github_repo:danraveh-ai/wormwatch
 github_repo:dattran0512/s1ngularity-repository-1
 github_repo:devampatel03/crowsnest
 github_repo:devbyray/check-vulnerable-npm-packages
+github_repo:dnszlsk/muad-dib
 github_repo:dragon-lady/herewegoagain-incident-scanner
 github_repo:drasrax/npm-shai-hulud-scanner
 github_repo:drkemp187/publishguard
@@ -35,6 +36,7 @@ github_repo:fabriziosalmi/tanstack-compromise-checker
 github_repo:fayzan101/chaindrop-shai-hulud-firewall
 github_repo:florianbruniaux/agentsec-triage
 github_repo:fractalrecursion/shai-hulud-guard
+github_repo:frankokeepme/nine-npm-packages-identified-as-carrying-self-spreading-ssh-worm-immediate-remov-3aa216bf
 github_repo:fxrobin/shai-hulud-check
 github_repo:gal-nagli/s1ngularity-repository-2
 github_repo:gensecaihq/shai-hulud-2.0-detector

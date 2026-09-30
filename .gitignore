@@ -1,7 +1,6 @@
-# Python cache
+# Python compiled files
 __pycache__/
 *.pyc
 
-# Generated data runs and state
-data/runs/
+# Data state files (runtime artifacts)
 data/state/

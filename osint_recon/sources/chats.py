@@ -13,7 +13,7 @@ from .base import Collector, iocs_from_text
 class TelegramCollector(Collector):
 
     name = "telegram"
-    enabled_by_default = False
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         try:
@@ -74,7 +74,7 @@ class TelegramCollector(Collector):
 class DiscordCollector(Collector):
 
     name = "discord"
-    enabled_by_default = False
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         try:

@@ -1,105 +1,102 @@
-
 http:
-  user_agent: "YourTeam intel-team@yourorg.example"
+  user_agent: YourTeam intel-team@yourorg.example
   respect_robots: true
   min_delay_seconds: 2.0
   timeout_seconds: 30
   retries: 2
-
 watch_terms:
-  - yourcompany
-  - yourbrand.com
-
+- yourcompany
+- yourbrand.com
 output:
   data_dir: data
-
 sources:
   text_feeds:
     enabled: true
     feeds: {}
-
   stix_files:
     enabled: true
     urls:
-      - https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz
+    - https://raw.githubusercontent.com/digitalside/threat-actor/master/latest.tar.gz
     paths: []
-
   rss_reports:
     enabled: true
     feeds: {}
     filter_keywords: []
-
   sec_8k_item105:
     enabled: true
     lookback_days: 7
     fetch_item_text: false
     max_items: 60
-
   github_repos:
     enabled: true
     queries: []
-    since: ""
-
+    since: ''
   github_ioc_repos:
     enabled: true
-    repos: [digitalside/threat-actor]
-
+    repos:
+    - digitalside/threat-actor
+    - brianklaas/Threat-Actor-Name-Database
+    - centerforsecurityanddemocracy/public_threat_lists
   github_secrets:
     enabled: true
     use_code_search: false
     max_repos: 25
     max_files_per_repo: 40
     queries: []
-    repos: []
-
+    repos:
+    - gitleaks/gitleaks
+    - tleyden/keynuker
   crtsh_certs:
     enabled: true
-    domains: []
+    domains:
+    - abuse.ch
+    - urlhaus.abuse.ch
     since_id: 0
-
   ransom_leaks:
     enabled: true
     watchlist: []
-
   hibp_domain:
-    enabled: false
-    api_key: ""
+    enabled: true
+    api_key: ''
     domains: []
-
   malwarebazaar_brand:
-    enabled: false
-    search_terms: []
-
+    enabled: true
+    search_terms:
+    - stealer
+    - redline
+    - vidar
   telegram:
-    enabled: false
+    enabled: true
     channels: []
-    keywords: [breach, stealer, combo, yourbrand]
+    keywords:
+    - breach
+    - stealer
+    - combo
     history_limit: 200
-
   discord:
-    enabled: false
+    enabled: true
     channel_ids: {}
-
   forums:
-    enabled: false
+    enabled: true
     sites: []
-
   paste_dumps:
-    enabled: false
+    enabled: true
     dump_urls: []
-    watch_terms: [yourbrand.com]
-
+    watch_terms:
+    - yourbrand.com
   rentry_search:
-    enabled: false
-    watch_terms: []
-
+    enabled: true
+    watch_terms:
+    - breach
+    - combo
+    - stealer
+    - db
   leak_teasers:
-    enabled: false
-    url: ""
-    token: ""
-
+    enabled: true
+    url: ''
+    token: ''
   doc_links:
-    enabled: false
+    enabled: true
     seed_urls: []
     allowed_hosts: []
     follow_links: false

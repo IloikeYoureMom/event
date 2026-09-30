@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h1>Sources</h1>
-  <div class="sub">{{ collectors | length }} collectors registered &middot; gated collectors need credentials in config/feeds.yaml</div>
+  <div class="sub">{{ collectors | length }} collectors registered &middot; all enabled &middot; credential-backed collectors activate once keys are set in config/feeds.yaml</div>
 </div>
 
 <div class="panel">
@@ -13,7 +13,7 @@
     {% for c in collectors %}
     <tr>
       <td class="mono">{{ c.name }}</td>
-      <td><span class="pill {{ 'on' if c.default_enabled else 'off' }}">{{ 'enabled' if c.default_enabled else 'gated' }}</span></td>
+      <td><span class="pill on">enabled</span></td>
       <td>{{ c.items }}</td>
     </tr>
     {% endfor %}

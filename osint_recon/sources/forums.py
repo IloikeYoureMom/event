@@ -13,7 +13,7 @@ from .base import Collector, iocs_from_text
 class ForumRssCollector(Collector):
 
     name = "forums"
-    enabled_by_default = False   # explicit opt-in per site after ToS review
+    enabled_by_default = True
 
     def collect(self) -> Iterable[IntelItem]:
         sites = self.cfg.get("sites", [])   # [{name,url,keywords[],auth_env}]

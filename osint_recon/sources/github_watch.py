@@ -118,6 +118,12 @@ def scan_text(text: str) -> list[tuple[str, str]]:
 class GithubSearchCollector(Collector):
     name = "github_repos"
 
+    DEFAULT_REPOS = [
+        "digitalside/threat-actor",
+        "brianklaas/Threat-Actor-Name-Database",
+        "centerforsecurityanddemocracy/public_threat_lists",
+    ]
+
     DEFAULT_QUERIES = [
         "shai-hulud", "trivyvix", "npm-worm", "s1ngularity",
         '"config.npmrc" AND "publishConfig"',
@@ -342,6 +348,15 @@ class GithubSecretScanCollector(Collector):
         return paths[: int(self.cfg.get("max_tree_files", 300))]
 
     def collect(self) -> Iterable[IntelItem]:
+        for extra in self.DEFAULT_REPOS:
+            yield IntelItem(
+                category="github_repo", value=extra, source=self.name,
+                source_ref=f"https://github.com/{extra}",
+                confidence=0.5, tlp="CLEAR", tags=["github", "watchlist"],
+                attributes={"description": "", "stars": None,
+                            "owner_type": "Organization", "pushed_at": None,
+                            "topics": []},
+            )
         queries = list(self.DEFAULT_QUERIES) + list(self.cfg.get("queries", []))
         max_repos = int(self.cfg.get("max_repos", 25))
         repos: dict[str, str] = {}
